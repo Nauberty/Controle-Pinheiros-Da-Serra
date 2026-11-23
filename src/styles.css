@@ -495,3 +495,13 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: man
 .unit-count .unit-add { flex: none; color: var(--forest-700); background: var(--forest-50); }
 .unit-count .unit-add:hover { background: var(--forest-100); }
 .modal .tabs .tab { padding: 10px 11px; font-size: 14px; }
+
+/* atividades campori: seções Preparação / No Campori */
+.camp-section-head { display: flex; align-items: center; gap: 12px; padding: 16px; flex-wrap: wrap; }
+.camp-section-icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: none; background: var(--forest-50); color: var(--forest-700); }
+.camp-section-icon.evento { background: var(--info-bg); color: var(--info); }
+.camp-section-icon svg { width: 20px; height: 20px; }
+.camp-section-title { font-size: 17px; font-weight: 700; }
+.camp-section-count { font-family: var(--display); font-size: 20px; font-weight: 600; color: var(--text-2); }
+.camp-section .camp-list { border-top: 1px solid var(--border); }
+.camp-empty { border-top: 1px solid var(--border); padding: 18px 16px; }

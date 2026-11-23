@@ -107,6 +107,8 @@ export interface CampActivity {
   title: string;
   description?: string;
   category: string;
+  /** preparacao = antes do Campori · evento = durante o Campori */
+  phase?: 'preparacao' | 'evento';
   responsible?: string;
   unitId?: string | null; // unidade responsável (opcional)
   dueDate?: string;

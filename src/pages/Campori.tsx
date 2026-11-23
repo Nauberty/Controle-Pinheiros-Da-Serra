@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, CalendarClock, CheckCircle2, Circle, ListChecks, Pencil, Plus, Search, Tent, Trash2 } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CheckCircle2, Circle, ClipboardList, ListChecks, Pencil, Plus, Search, Tent, Trash2 } from 'lucide-react';
 import type { CampActivity } from '../types';
 import { removeItem, save } from '../data/store';
 import { dateBR, normalize, today, uid } from '../lib/format';
-import { Bar, Empty, Field, Modal, UnitChip, confirmDialog, run, toast } from '../components/ui';
+import { Bar, Field, Modal, UnitChip, confirmDialog, run, toast } from '../components/ui';
 import type { PageProps } from './types';
 
 export const CAMP_CATEGORIES = [
@@ -26,6 +26,22 @@ const CATEGORY_TONE: Record<string, string> = {
 };
 
 type View = 'pendentes' | 'concluidas' | 'todas';
+type Phase = 'preparacao' | 'evento';
+
+const PHASES: Record<Phase, { title: string; subtitle: string; empty: string; icon: typeof Tent }> = {
+  preparacao: {
+    title: 'Preparação',
+    subtitle: 'O que precisa ser feito até o Campori',
+    empty: 'Ex.: inscrições, uniformes, barracas, transporte, treinamentos…',
+    icon: ClipboardList,
+  },
+  evento: {
+    title: 'No Campori',
+    subtitle: 'O que precisa ser feito durante o Campori',
+    empty: 'Ex.: montar o acampamento, atividades oficiais, escalas de cozinha e limpeza, desfile, inspeção…',
+    icon: Tent,
+  },
+};
 
 function daysUntil(iso: string) {
   const t = new Date(iso + 'T00:00:00').getTime();
@@ -35,7 +51,7 @@ function daysUntil(iso: string) {
 }
 
 export default function Campori({ data }: PageProps) {
-  const [form, setForm] = useState<{ item?: CampActivity } | null>(null);
+  const [form, setForm] = useState<{ item?: CampActivity; phase?: Phase } | null>(null);
   const [view, setView] = useState<View>('pendentes');
   const [category, setCategory] = useState('');
   const [q, setQ] = useState('');
@@ -87,13 +103,98 @@ export default function Campori({ data }: PageProps) {
       run(() => removeItem('campori', a.id), 'Atividade excluída');
   };
 
+  const phaseOf = (a: CampActivity): Phase => a.phase ?? 'preparacao';
+  const stats = (ph: Phase) => {
+    const items = all.filter((a) => phaseOf(a) === ph);
+    return { total: items.length, done: items.filter((a) => a.done).length };
+  };
+
+  const renderItem = (a: CampActivity) => {
+    const isLate = !a.done && !!a.dueDate && a.dueDate < now;
+    const unit = a.unitId ? unitById.get(a.unitId) : undefined;
+    return (
+      <div key={a.id} className={`camp-item ${a.done ? 'done' : ''}`}>
+        <button
+          className="camp-check"
+          onClick={() => toggle(a)}
+          aria-label={a.done ? 'Marcar como pendente' : 'Marcar como concluída'}
+          title={a.done ? 'Marcar como pendente' : 'Marcar como concluída'}
+        >
+          {a.done ? <CheckCircle2 /> : <Circle />}
+        </button>
+        <div className="grow" style={{ minWidth: 0 }}>
+          <div className="camp-title">{a.title}</div>
+          {a.description && <div className="small muted camp-desc">{a.description}</div>}
+          <div className="camp-meta">
+            <span className={`badge ${CATEGORY_TONE[a.category] ?? 'neutral'}`}>{a.category}</span>
+            {unit && <UnitChip unit={unit} />}
+            {a.responsible && <span>👤 {a.responsible}</span>}
+            {a.dueDate && !a.done && (
+              <span className={isLate ? 'down' : ''}>
+                <CalendarClock size={13} style={{ verticalAlign: -2 }} /> {isLate ? 'Atrasada · ' : phaseOf(a) === 'evento' ? 'Dia ' : 'Até '}
+                {dateBR(a.dueDate)}
+              </span>
+            )}
+            {a.done && a.doneAt && <span className="up">Concluída em {new Date(a.doneAt).toLocaleDateString('pt-BR')}</span>}
+          </div>
+        </div>
+        <div className="row" style={{ gap: 2 }}>
+          <button className="icon-btn" aria-label="Editar" title="Editar atividade" onClick={() => setForm({ item: a })}>
+            <Pencil />
+          </button>
+          <button className="icon-btn danger" aria-label="Excluir atividade" title="Excluir atividade" onClick={() => del(a)}>
+            <Trash2 />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSection = (ph: Phase) => {
+    const info = PHASES[ph];
+    const st = stats(ph);
+    const items = list.filter((a) => phaseOf(a) === ph);
+    const Icon = info.icon;
+    return (
+      <div className="card camp-section" key={ph}>
+        <div className="camp-section-head">
+          <div className={`camp-section-icon ${ph}`}>
+            <Icon />
+          </div>
+          <div className="grow" style={{ minWidth: 0 }}>
+            <h2 className="camp-section-title">{info.title}</h2>
+            <p className="small muted">{info.subtitle}</p>
+          </div>
+          <span className="camp-section-count" title="Concluídas / total">
+            {st.done}/{st.total}
+          </span>
+          <button className="btn btn-sm" onClick={() => setForm({ phase: ph })}>
+            <Plus /> Adicionar
+          </button>
+        </div>
+        {st.total > 0 && (
+          <div style={{ padding: '0 16px 12px' }}>
+            <Bar pct={(st.done / st.total) * 100} color={ph === 'evento' ? 'var(--info)' : undefined} />
+          </div>
+        )}
+        {items.length === 0 ? (
+          <div className="camp-empty small muted">
+            {st.total === 0 ? info.empty : view === 'pendentes' ? 'Tudo concluído nesta etapa! 🎉' : 'Nenhuma atividade com esse filtro.'}
+          </div>
+        ) : (
+          <div className="camp-list">{items.map(renderItem)}</div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="page">
       <div className="page-head">
         <div>
           <h1 className="page-title">Atividades Campori</h1>
           <p className="page-sub">
-            Tudo o que precisa ser feito até o {eventName || 'Campori'}
+            Preparação e programação do {eventName || 'Campori'}
             {days !== null && days >= 0 && ` · faltam ${days} dia${days === 1 ? '' : 's'}`}.
           </p>
         </div>
@@ -123,8 +224,8 @@ export default function Campori({ data }: PageProps) {
         </div>
       </div>
 
-      <div className="card">
-        <div className="toolbar">
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="toolbar" style={{ borderBottom: 0 }}>
           <div className="search">
             <Search />
             <input className="input" placeholder="Buscar atividade ou responsável…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -147,76 +248,30 @@ export default function Campori({ data }: PageProps) {
             </button>
           </div>
         </div>
-
-        {list.length === 0 ? (
-          <Empty
-            icon={all.length && view === 'pendentes' ? CheckCircle2 : Tent}
-            title={
-              !all.length ? 'Nenhuma atividade criada' : view === 'pendentes' ? 'Tudo concluído! 🎉' : 'Nenhuma atividade encontrada'
-            }
-            text={!all.length ? 'Crie a lista de tarefas para o Campori: inscrições, uniformes, barracas, transporte…' : undefined}
-            action={
-              !all.length && (
-                <button className="btn btn-primary" onClick={() => setForm({})}>
-                  <Plus /> Criar primeira atividade
-                </button>
-              )
-            }
-          />
-        ) : (
-          <div className="camp-list">
-            {list.map((a) => {
-              const isLate = !a.done && !!a.dueDate && a.dueDate < now;
-              const unit = a.unitId ? unitById.get(a.unitId) : undefined;
-              return (
-                <div key={a.id} className={`camp-item ${a.done ? 'done' : ''}`}>
-                  <button
-                    className="camp-check"
-                    onClick={() => toggle(a)}
-                    aria-label={a.done ? 'Marcar como pendente' : 'Marcar como concluída'}
-                    title={a.done ? 'Marcar como pendente' : 'Marcar como concluída'}
-                  >
-                    {a.done ? <CheckCircle2 /> : <Circle />}
-                  </button>
-                  <div className="grow" style={{ minWidth: 0 }}>
-                    <div className="camp-title">{a.title}</div>
-                    {a.description && <div className="small muted camp-desc">{a.description}</div>}
-                    <div className="camp-meta">
-                      <span className={`badge ${CATEGORY_TONE[a.category] ?? 'neutral'}`}>{a.category}</span>
-                      {unit && <UnitChip unit={unit} />}
-                      {a.responsible && <span>👤 {a.responsible}</span>}
-                      {a.dueDate && !a.done && (
-                        <span className={isLate ? 'down' : ''}>
-                          <CalendarClock size={13} style={{ verticalAlign: -2 }} /> {isLate ? 'Atrasada · ' : 'Até '}
-                          {dateBR(a.dueDate)}
-                        </span>
-                      )}
-                      {a.done && a.doneAt && (
-                        <span className="up">Concluída em {new Date(a.doneAt).toLocaleDateString('pt-BR')}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="row" style={{ gap: 2 }}>
-                    <button className="icon-btn" aria-label="Editar" onClick={() => setForm({ item: a })}>
-                      <Pencil />
-                    </button>
-                    <button className="icon-btn danger" aria-label="Excluir atividade" title="Excluir atividade" onClick={() => del(a)}>
-                      <Trash2 />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
 
-      {form && <ActivityForm data={data} item={form.item} onClose={() => setForm(null)} />}
+      <div className="stack">
+        {renderSection('preparacao')}
+        {renderSection('evento')}
+      </div>
+
+      {form && <ActivityForm data={data} item={form.item} phase={form.phase} onClose={() => setForm(null)} />}
     </div>
   );
 }
 
-function ActivityForm({ data, item, onClose }: { data: PageProps['data']; item?: CampActivity; onClose: () => void }) {
+function ActivityForm({
+  data,
+  item,
+  phase: presetPhase,
+  onClose,
+}: {
+  data: PageProps['data'];
+  item?: CampActivity;
+  phase?: Phase;
+  onClose: () => void;
+}) {
+  const [phase, setPhase] = useState<Phase>(item?.phase ?? presetPhase ?? 'preparacao');
   const [title, setTitle] = useState(item?.title ?? '');
   const [description, setDescription] = useState(item?.description ?? '');
   const [category, setCategory] = useState(item?.category ?? CAMP_CATEGORIES[0]);
@@ -245,6 +300,7 @@ function ActivityForm({ data, item, onClose }: { data: PageProps['data']; item?:
           title: title.trim(),
           description: description.trim(),
           category,
+          phase,
           responsible: responsible.trim(),
           unitId: unitId || null,
           dueDate: dueDate || undefined,
@@ -262,7 +318,7 @@ function ActivityForm({ data, item, onClose }: { data: PageProps['data']; item?:
 
   return (
     <Modal
-      title={item ? 'Editar atividade' : 'Nova atividade do Campori'}
+      title={item ? 'Editar atividade' : phase === 'evento' ? 'Nova atividade — No Campori' : 'Nova atividade — Preparação'}
       onClose={onClose}
       footer={
         <>
@@ -290,6 +346,16 @@ function ActivityForm({ data, item, onClose }: { data: PageProps['data']; item?:
             onChange={(e) => setTitle(e.target.value)}
           />
         </Field>
+        <Field label="Quando" full>
+          <div className="segmented">
+            <button type="button" className={phase === 'preparacao' ? 'on' : ''} onClick={() => setPhase('preparacao')}>
+              <ClipboardList /> Preparação (antes)
+            </button>
+            <button type="button" className={phase === 'evento' ? 'on' : ''} onClick={() => setPhase('evento')}>
+              <Tent /> No Campori (durante)
+            </button>
+          </div>
+        </Field>
         <Field label="Detalhes (opcional)" full>
           <textarea
             className="textarea"
@@ -305,7 +371,7 @@ function ActivityForm({ data, item, onClose }: { data: PageProps['data']; item?:
             ))}
           </select>
         </Field>
-        <Field label="Prazo (opcional)">
+        <Field label={phase === 'evento' ? 'Dia (opcional)' : 'Prazo (opcional)'}>
           <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </Field>
         <Field label="Responsável (opcional)">
