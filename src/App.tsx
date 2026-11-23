@@ -4,7 +4,7 @@ import { LayoutDashboard, LogOut, Settings as SettingsIcon, Trophy, Users, Walle
 import { connect, disconnect, useData } from './data/store';
 import { createLocalBackend } from './data/localBackend';
 import { cloudEnabled, createCloudBackend, getMyAccess, logout, watchAuth } from './data/cloud';
-import { COLLECTIONS, EXECUTIVE_ONLY } from './types';
+import { COLLECTIONS, REGULAR_COLLECTIONS } from './types';
 import { requestPersistentStorage } from './lib/backup';
 import { ConfirmHost, Toasts } from './components/ui';
 import Login from './components/Login';
@@ -17,10 +17,10 @@ import { navigate, type Route } from './lib/router';
 
 
 const NAV: { id: Route; label: string; short: string; icon: LucideIcon; executive?: boolean }[] = [
-  { id: 'painel', label: 'Painel', short: 'Painel', icon: LayoutDashboard },
+  { id: 'painel', label: 'Painel', short: 'Painel', icon: LayoutDashboard, executive: true },
   { id: 'pontuacao', label: 'Pontuação', short: 'Pontos', icon: Trophy },
   { id: 'tesouraria', label: 'Tesouraria', short: 'Caixa', icon: Wallet, executive: true },
-  { id: 'membros', label: 'Controle de Membros', short: 'Membros', icon: Users },
+  { id: 'membros', label: 'Controle de Membros', short: 'Membros', icon: Users, executive: true },
   { id: 'configuracoes', label: 'Configurações', short: 'Ajustes', icon: SettingsIcon, executive: true },
 ];
 
@@ -64,7 +64,7 @@ export default function App() {
           setDenied(true);
         } else {
           const role = access.role ?? 'regular';
-          const allowed = role === 'executiva' ? COLLECTIONS : COLLECTIONS.filter((c) => !EXECUTIVE_ONLY.includes(c));
+          const allowed = role === 'executiva' ? COLLECTIONS : REGULAR_COLLECTIONS;
           connect(createCloudBackend(allowed), u.email ?? undefined, role);
         }
       } catch {
@@ -106,7 +106,7 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
   const data = useData();
   const nav = NAV.filter((n) => !n.executive || data.isExecutive);
   // diretoria regular não abre telas exclusivas da executiva
-  const route = nav.some((n) => n.id === wanted) ? wanted : 'painel';
+  const route = nav.some((n) => n.id === wanted) ? wanted : nav[0].id;
   const Page = { painel: Dashboard, pontuacao: Pontuacao, tesouraria: Tesouraria, membros: Membros, configuracoes: Configuracoes }[route];
 
   return (

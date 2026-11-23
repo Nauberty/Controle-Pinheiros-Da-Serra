@@ -40,7 +40,7 @@ Pau-Brasil, Cedro, Chorão e Ipê, cada uma com seu logo e sua cor.
 | Nível | Acessa |
 |---|---|
 | Diretoria executiva | Tudo, inclusive **Tesouraria** e Configurações |
-| Diretoria regular | Painel, Pontuação e Controle de Membros |
+| Diretoria regular | Somente Pontuação das Unidades |
 
 O bloqueio da Tesouraria vale também no banco de dados (ver `firestore.rules`), não só na tela.
 

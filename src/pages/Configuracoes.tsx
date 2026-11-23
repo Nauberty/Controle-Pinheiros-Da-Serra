@@ -232,7 +232,7 @@ function SyncCard({ data }: { data: PageProps['data'] }) {
 
 const ROLE_INFO: Record<AccessRole, { label: string; text: string }> = {
   executiva: { label: 'Diretoria executiva', text: 'Acesso total: pontuação, membros, tesouraria e configurações.' },
-  regular: { label: 'Diretoria regular', text: 'Pontuação e controle de membros. Não vê a tesouraria.' },
+  regular: { label: 'Diretoria regular', text: 'Somente Pontuação das Unidades.' },
 };
 
 function AccessCard({ currentEmail }: { currentEmail: string }) {

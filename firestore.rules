@@ -4,7 +4,7 @@ rules_version = '2';
 //
 // Níveis de acesso (definidos na coleção "acesso", um documento por e-mail):
 //   role: "executiva" → acesso total, inclusive Tesouraria, Configurações e lista de acesso
-//   role: "regular"   → Pontuação e Controle de Membros (sem Tesouraria)
+//   role: "regular"   → somente Pontuação das Unidades
 // Quem não está na coleção "acesso" não consegue ler nem alterar nada.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -30,19 +30,21 @@ service cloud.firestore {
       allow read, write: if executiva();
     }
 
-    // Toda a diretoria
-    match /members/{id} { allow read, write: if liberado(); }
+    // Pontuação: toda a diretoria
     match /points/{id}  { allow read, write: if liberado(); }
+
+    // Membros: somente diretoria executiva
+    match /members/{id} { allow read, write: if executiva(); }
 
     // Toda a diretoria lê; só a executiva altera
     match /units/{id}    { allow read: if liberado(); allow write: if executiva(); }
     match /settings/{id} { allow read: if liberado(); allow write: if executiva(); }
 
-    // Lixeira: qualquer membro liberado pode enviar itens que ele mesmo pode excluir;
+    // Lixeira: a regular pode enviar pontos que excluir;
     // somente a executiva vê, restaura ou apaga definitivamente
     match /lixeira/{id} {
       allow create: if liberado()
-        && (executiva() || request.resource.data.collection in ['members', 'points']);
+        && (executiva() || request.resource.data.collection == 'points');
       allow read, update, delete: if executiva();
     }
 

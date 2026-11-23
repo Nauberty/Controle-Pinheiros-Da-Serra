@@ -111,7 +111,7 @@ export function createCloudBackend(allowed: CollectionName[] = COLLECTIONS): Bac
         onSnapshot(
           collection(fs, name),
           (snap) => onCollection(name, snap.docs.map((d) => ({ ...(d.data() as Item), id: d.id }))),
-          (e) => onError(e),
+          (e) => onError(Object.assign(e, { collection: name })),
         ),
       );
       return () => unsubs.forEach((u) => u());

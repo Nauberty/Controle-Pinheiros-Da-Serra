@@ -20,9 +20,9 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
-function friendlyError(e: Error & { code?: string }) {
+function friendlyError(e: Error & { code?: string; collection?: string }) {
   if (e.code === 'permission-denied')
-    return 'Seu e-mail ainda não tem permissão para acessar os dados. Peça a alguém da diretoria para liberar seu acesso em Configurações.';
+    return `O banco de dados recusou o acesso a "${e.collection ?? 'dados'}". Confira se as regras de segurança do arquivo firestore.rules foram coladas e publicadas no Firebase (Firestore Database → Regras → Publicar).`;
   return e.message;
 }
 

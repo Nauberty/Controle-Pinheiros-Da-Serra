@@ -46,7 +46,7 @@ As regras só deixam entrar quem está na lista **acesso**. O primeiro e-mail é
 | Nível | O que acessa |
 |---|---|
 | **Diretoria executiva** (`executiva`) | Tudo: Painel, Pontuação, Controle de Membros, **Tesouraria** e Configurações |
-| **Diretoria regular** (`regular`) | Painel, Pontuação e Controle de Membros. **Não vê a Tesouraria.** |
+| **Diretoria regular** (`regular`) | **Somente Pontuação das Unidades.** Não vê membros, tesouraria nem configurações. |
 
 O bloqueio não é só visual: as próprias regras do banco impedem a diretoria regular de ler os dados financeiros.
 

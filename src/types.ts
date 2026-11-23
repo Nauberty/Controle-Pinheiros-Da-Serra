@@ -127,4 +127,6 @@ export const COLLECTIONS: CollectionName[] = ['units', 'members', 'points', 'cha
 /** Coleções financeiras */
 export const FINANCE_COLLECTIONS: CollectionName[] = ['charges', 'payments', 'expenses'];
 /** Coleções que a diretoria regular não pode ler */
-export const EXECUTIVE_ONLY: CollectionName[] = [...FINANCE_COLLECTIONS, 'lixeira'];
+export const EXECUTIVE_ONLY: CollectionName[] = [...FINANCE_COLLECTIONS, 'lixeira', 'members'];
+/** O que a diretoria regular lê: somente o necessário para a Pontuação das Unidades */
+export const REGULAR_COLLECTIONS: CollectionName[] = ['units', 'points', 'settings'];
