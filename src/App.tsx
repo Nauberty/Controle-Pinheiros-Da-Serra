@@ -104,8 +104,30 @@ export default function App() {
   return <Shell route={route} user={user} />;
 }
 
+function useOnline() {
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
+  return online;
+}
+
 function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
   const data = useData();
+  const online = useOnline();
+  useEffect(() => {
+    const onErr = (e: Event) => toast((e as CustomEvent<string>).detail, true);
+    window.addEventListener('pinheiros:write-error', onErr);
+    return () => window.removeEventListener('pinheiros:write-error', onErr);
+  }, []);
+  const cloudOnline = data.mode === 'cloud' && online;
   const locked = (n: (typeof NAV)[number]) => !!n.executive && !data.isExecutive;
   const nav = NAV.filter((n) => !locked(n));
   // diretoria regular não abre telas exclusivas da executiva
@@ -142,8 +164,8 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
         <div className="sidebar-foot">
           <span className="copyright">© {new Date().getFullYear()} Pinheiros da Serra · Todos os direitos reservados</span>
           <span className="sync-pill">
-            <span className={`sync-dot ${data.mode === 'cloud' ? 'on' : ''}`} />
-            {data.mode === 'cloud' ? 'Sincronizado online' : 'Modo local (este navegador)'}
+            <span className={`sync-dot ${cloudOnline ? 'on' : data.mode === 'cloud' ? 'offline' : ''}`} />
+            {data.mode !== 'cloud' ? 'Modo local (este navegador)' : online ? 'Sincronizado online' : 'Sem internet · salvo no aparelho'}
           </span>
           {user && (
             <>
@@ -172,7 +194,10 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
           <div className="grow">
             <div className="brand-name">{data.settings.clubName}</div>
           </div>
-          <span className={`sync-dot ${data.mode === 'cloud' ? 'on' : ''}`} title={data.mode === 'cloud' ? 'Online' : 'Local'} />
+          <span
+            className={`sync-dot ${cloudOnline ? 'on' : data.mode === 'cloud' ? 'offline' : ''}`}
+            title={cloudOnline ? 'Online' : data.mode === 'cloud' ? 'Sem internet' : 'Local'}
+          />
           {user && (
             <button className="icon-btn" style={{ color: '#fff' }} onClick={() => logout()} aria-label="Sair">
               <LogOut />
@@ -193,6 +218,12 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
             ))}
           </nav>
         </div>
+
+        {data.mode === 'cloud' && !online && (
+          <div className="offline-bar">
+            Sem internet. Tudo o que você lançar fica salvo no aparelho e será enviado sozinho quando a conexão voltar.
+          </div>
+        )}
 
         {data.error ? (
           <div className="page">

@@ -22,8 +22,8 @@ Este documento explica como os dados do clube ficam protegidos contra perda e po
 ### 1. Lixeira
 Nada é apagado de verdade de primeira. Pontos, membros, pagamentos, despesas e cobranças excluídos vão para a **Lixeira** (Configurações → Lixeira), com data e autor da exclusão. Dá para **restaurar** com um clique. Só a diretoria executiva vê a lixeira e pode apagar algo definitivamente.
 
-### 2. Cópia em tempo real em cada aparelho (modo online)
-O sistema guarda uma cópia dos dados em cada celular ou computador que usa o sistema. Se a internet cair, continua funcionando e envia as alterações quando voltar.
+### 2. Funciona sem internet
+O app fica guardado no celular e **abre mesmo sem internet**, depois de ter sido aberto uma vez com conexão. Os dados também ficam guardados em cada aparelho: dá para consultar e lançar pontos, pagamentos e atividades offline, e tudo é enviado sozinho quando a conexão voltar.
 
 ### 3. Backup automático semanal (modo online)
 Toda **segunda-feira** o GitHub gera um backup completo do banco, **criptografado com senha**, e guarda por **90 dias** (cerca de 13 cópias). É de graça e roda sozinho.

@@ -508,3 +508,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: man
 .password-row { border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
 .copyright { font-size: 10.5px; color: #7f9486; line-height: 1.4; }
 .copyright-login { font-size: 11px; color: var(--text-3); margin-top: 18px; }
+
+/* ---------- offline ---------- */
+.sync-dot.offline { background: #e0a43a; box-shadow: 0 0 0 3px rgba(224,164,58,.2); }
+.offline-bar { background: var(--warning-bg); color: #7a5212; border-bottom: 1px solid #f0d9a8; font-size: 13px; font-weight: 500; padding: 8px 16px; text-align: center; }

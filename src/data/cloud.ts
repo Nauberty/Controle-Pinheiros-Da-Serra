@@ -15,6 +15,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocFromCache,
   getDocs,
   initializeFirestore,
   onSnapshot,
@@ -89,14 +90,54 @@ export async function logout() {
 
 
 /** Lê o nível de acesso do usuário logado. Retorna null se o e-mail não estiver liberado. */
-export async function getMyAccess(email: string): Promise<Access | null> {
+const ROLE_KEY = (email: string) => 'pinheiros-da-serra:role:' + email.trim().toLowerCase();
+
+function rememberRole(a: Access) {
   try {
-    const snap = await getDoc(doc(init().fs, 'acesso', email.trim().toLowerCase()));
+    localStorage.setItem(ROLE_KEY(a.id), JSON.stringify(a));
+  } catch {
+    /* ignore */
+  }
+}
+
+function rememberedRole(email: string): Access | null {
+  try {
+    const raw = localStorage.getItem(ROLE_KEY(email));
+    return raw ? (JSON.parse(raw) as Access) : null;
+  } catch {
+    return null;
+  }
+}
+
+const normalizeAccess = (id: string, data: Omit<Access, 'id'>): Access => ({
+  id,
+  ...data,
+  role: data.role === 'executiva' ? 'executiva' : 'regular',
+});
+
+/**
+ * Lê o nível de acesso do usuário logado. Retorna null se o e-mail não estiver liberado.
+ * Sem internet, usa o último nível conhecido neste aparelho (para o app abrir offline).
+ */
+export async function getMyAccess(email: string): Promise<Access | null> {
+  const ref = doc(init().fs, 'acesso', email.trim().toLowerCase());
+  try {
+    const snap = await getDoc(ref);
     if (!snap.exists()) return null;
-    const data = snap.data() as Omit<Access, 'id'>;
-    return { id: snap.id, ...data, role: data.role === 'executiva' ? 'executiva' : 'regular' };
+    const a = normalizeAccess(snap.id, snap.data() as Omit<Access, 'id'>);
+    rememberRole(a);
+    return a;
   } catch (e) {
     if ((e as { code?: string }).code === 'permission-denied') return null;
+    // provavelmente sem internet: tenta o cache do Firebase e depois o último nível guardado
+    try {
+      const snap = await getDocFromCache(ref);
+      if (snap.exists()) return normalizeAccess(snap.id, snap.data() as Omit<Access, 'id'>);
+    } catch {
+      /* não estava no cache */
+    }
+    const saved = rememberedRole(email);
+    if (saved) return saved;
     throw e;
   }
 }
@@ -105,6 +146,14 @@ export async function getMyAccess(email: string): Promise<Access | null> {
 
 
 // ---------- Backend de dados ----------
+
+function reportWriteError(e: Error & { code?: string }) {
+  const msg =
+    e.code === 'permission-denied'
+      ? 'O banco recusou a gravação (sem permissão). Confira as regras do Firebase.'
+      : 'Não foi possível salvar no servidor: ' + e.message;
+  window.dispatchEvent(new CustomEvent('pinheiros:write-error', { detail: msg }));
+}
 
 export function createCloudBackend(allowed: CollectionName[] = COLLECTIONS): Backend {
   const { fs } = init();
@@ -122,12 +171,15 @@ export function createCloudBackend(allowed: CollectionName[] = COLLECTIONS): Bac
       );
       return () => unsubs.forEach((u) => u());
     },
+    // A gravação vale na hora no aparelho (aparece para quem está usando) e é enviada ao
+    // servidor em segundo plano — inclusive quando estiver sem internet, assim que a conexão voltar.
+    // Por isso não esperamos a confirmação do servidor; um erro de permissão é avisado depois.
     async put(name, item) {
       const { id, ...data } = item;
-      await setDoc(doc(fs, name, id), data);
+      setDoc(doc(fs, name, id), data).catch(reportWriteError);
     },
     async remove(name, id) {
-      await deleteDoc(doc(fs, name, id));
+      deleteDoc(doc(fs, name, id)).catch(reportWriteError);
     },
     async replaceAll(db) {
       // apaga tudo e grava o backup, em lotes (limite do Firestore: 500 operações por lote)
