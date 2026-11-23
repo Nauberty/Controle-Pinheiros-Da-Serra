@@ -77,14 +77,13 @@ Funciona no computador e no celular. No celular dá para "Adicionar à tela inic
 
 ---
 
-## Publicar o site (GitHub Pages)
+## Endereço do sistema
 
-1. No GitHub, abra o repositório → **Settings** → **Pages**.
-2. Em **Build and deployment → Source**, escolha **GitHub Actions**.
-3. Pronto. A cada alteração na branch `main`, o site é publicado automaticamente em:
-   **https://nauberty.github.io/Controle-Pinheiros-Da-Serra/**
+### 👉 https://pinheirosdaserra.vercel.app
 
-Para acompanhar a publicação, abra a aba **Actions** do repositório.
+- Hospedado na **Vercel** (plano Hobby, gratuito). Cada alteração enviada à branch `main` é publicada sozinha.
+- Endereço reserva: https://nauberty.github.io/Controle-Pinheiros-Da-Serra/ (GitHub Pages, publicado pelo workflow `deploy.yml`).
+- Os dois endereços precisam estar em **Firebase → Authentication → Configurações → Domínios autorizados**.
 
 ---
 

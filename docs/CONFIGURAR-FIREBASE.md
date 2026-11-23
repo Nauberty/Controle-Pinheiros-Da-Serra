@@ -20,7 +20,7 @@ O Firebase é um serviço do Google, e o plano gratuito (Spark) é mais que sufi
 
 1. No menu à esquerda: **Criação → Authentication** → **Vamos começar**.
 2. Na aba **Método de login**, escolha **E-mail/senha**, ative a primeira opção e clique em **Salvar**.
-3. Na aba **Configurações → Domínios autorizados**, clique em **Adicionar domínio** e coloque `nauberty.github.io`.
+3. Na aba **Configurações → Domínios autorizados**, clique em **Adicionar domínio** e coloque `pinheirosdaserra.vercel.app` (e também `nauberty.github.io`, o endereço reserva).
 
 ## 3. Criar o banco de dados
 
@@ -100,4 +100,4 @@ Siga o passo a passo em **[BACKUP.md](BACKUP.md#ativar-o-backup-automático-sema
 | "E-mail ou senha incorretos" | Confira se o usuário foi criado em Authentication → Usuários. |
 | "Acesso pendente" | O e-mail não está na coleção `acesso`, ou está com letras maiúsculas. |
 | A Tesouraria não aparece | O nível da pessoa é `regular`. Uma pessoa da diretoria executiva pode mudar em Configurações. |
-| A tela de login não abre ou dá erro de domínio | Adicione `nauberty.github.io` em Authentication → Configurações → Domínios autorizados. |
+| A tela de login não abre ou dá erro de domínio | Adicione `pinheirosdaserra.vercel.app` em Authentication → Configurações → Domínios autorizados. |
