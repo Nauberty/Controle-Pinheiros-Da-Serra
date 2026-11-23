@@ -1,45 +1,46 @@
-import { useMemo, useState } from 'react';
-import { Download, ListPlus, Pencil, Plus, Search, Trash2, UserPlus, Users } from 'lucide-react';
-import type { Member, MemberRole } from '../types';
+import { useMemo, useRef, useState } from 'react';
+import { CheckCircle2, Download, FileUp, ListPlus, Plus, RefreshCw, Search, Trash2, UserPlus, Users } from 'lucide-react';
+import type { Member } from '../types';
 import { removeItem, save } from '../data/store';
 import { chargeBalances } from '../lib/finance';
 import { money, normalize, uid } from '../lib/format';
 import { downloadCSV } from '../lib/download';
-import { Empty, Field, Modal, UnitChip, confirmDialog, initials, run } from '../components/ui';
+import { parseCSV, toIsoDate } from '../lib/csv';
+import { FIELDS, ROLES, age, completeness, roleLabel, type ProfileKey } from '../lib/memberFields';
+import { Bar, Empty, Field, Modal, UnitChip, UnitLogo, confirmDialog, initials, run, toast } from '../components/ui';
+import MemberProfile, { markSynced } from '../components/MemberProfile';
 import type { PageProps } from './types';
 
-const ROLES: { id: MemberRole; label: string }[] = [
-  { id: 'desbravador', label: 'Desbravador' },
-  { id: 'conselheiro', label: 'Conselheiro' },
-  { id: 'diretoria', label: 'Diretoria' },
-  { id: 'outro', label: 'Outro' },
-];
-const roleLabel = (r: MemberRole) => ROLES.find((x) => x.id === r)?.label ?? r;
+type View = 'ativos' | 'pendentes' | 'inativos';
 
 export default function Membros({ data }: PageProps) {
-  const [form, setForm] = useState<{ member?: Member } | null>(null);
+  const [profile, setProfile] = useState<{ member?: Member } | null>(null);
   const [bulk, setBulk] = useState(false);
+  const [importRows, setImportRows] = useState<string[][] | null>(null);
   const [q, setQ] = useState('');
   const [unit, setUnit] = useState('');
   const [role, setRole] = useState('');
-  const [showInactive, setShowInactive] = useState(false);
+  const [view, setView] = useState<View>('ativos');
+  const fileRef = useRef<HTMLInputElement>(null);
   const unitById = new Map(data.units.map((u) => [u.id, u]));
 
-  // quanto cada pessoa ainda deve nas cobranças ativas
+  // quanto cada pessoa ainda deve (somente diretoria executiva enxerga)
   const debt = useMemo(() => {
     const map = new Map<string, number>();
+    if (!data.isExecutive) return map;
     for (const c of data.charges.filter((c) => !c.archived))
       for (const b of chargeBalances(c, data.members, data.payments)) map.set(b.member.id, (map.get(b.member.id) ?? 0) + b.remaining);
     return map;
-  }, [data.charges, data.members, data.payments]);
+  }, [data.charges, data.members, data.payments, data.isExecutive]);
 
+  const pendingCount = data.members.filter((m) => m.sgcPending).length;
   const list = data.members
     .filter(
       (m) =>
-        m.active !== showInactive &&
+        (view === 'ativos' ? m.active : view === 'inativos' ? !m.active : m.sgcPending) &&
         (!unit || (unit === '_none' ? !m.unitId : m.unitId === unit)) &&
-        (!role || m.role === role) &&
-        (!q || normalize(`${m.name} ${m.guardian ?? ''}`).includes(normalize(q))),
+        (!role || roleLabel(m.role) === role) &&
+        (!q || normalize(`${m.name} ${m.guardian ?? ''} ${m.sgcId ?? ''} ${m.cpf ?? ''}`).includes(normalize(q))),
     )
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
@@ -47,10 +48,10 @@ export default function Membros({ data }: PageProps) {
 
   const del = async (m: Member) => {
     const pays = data.payments.filter((p) => p.memberId === m.id).length;
-    if (pays) {
+    if (pays || !data.isExecutive) {
       const ok = await confirmDialog(
         'Desativar membro?',
-        `${m.name} tem ${pays} pagamento(s) registrado(s), por isso não pode ser excluído. Deseja marcar como inativo? O histórico será mantido.`,
+        `${m.name} será marcado como inativo e o histórico será mantido.${pays ? ` (Possui ${pays} pagamento(s) registrado(s).)` : ''}`,
         { ok: 'Desativar', danger: false },
       );
       if (ok) run(() => save('members', { ...m, active: false }), 'Membro desativado');
@@ -69,43 +70,95 @@ export default function Membros({ data }: PageProps) {
   };
 
   const exportCSV = () =>
-    downloadCSV('membros.csv', [
-      ['Nome', 'Unidade', 'Função', 'Responsável', 'Telefone', 'Situação', 'Em aberto (R$)'],
+    downloadCSV('membros-pinheiros-da-serra.csv', [
+      ['Nome', 'Unidade', 'Função', ...FIELDS.map((f) => f.label), 'Situação', 'Pendente no SGC'],
       ...list.map((m) => [
         m.name,
         (m.unitId && unitById.get(m.unitId)?.name) || '',
         roleLabel(m.role),
-        m.guardian ?? '',
-        m.phone ?? '',
+        ...FIELDS.map((f) => (m[f.key] ?? '').toString().replace(/\n/g, ' | ')),
         m.active ? 'Ativo' : 'Inativo',
-        ((debt.get(m.id) ?? 0) / 100).toFixed(2).replace('.', ','),
+        m.sgcPending ? 'Sim' : 'Não',
       ]),
     ]);
+
+  const onFile = async (f: File) => {
+    try {
+      const rows = parseCSV(await f.text());
+      if (rows.length < 2) throw new Error('a planilha está vazia');
+      setImportRows(rows);
+    } catch (e) {
+      toast('Não foi possível ler a planilha: ' + (e as Error).message, true);
+    }
+  };
 
   return (
     <div className="page">
       <div className="page-head">
         <div>
-          <h1 className="page-title">Membros</h1>
-          <p className="page-sub">
-            {data.members.filter((m) => m.active).length} membro(s) ativo(s) · {counts.map((c) => `${c.unit.name}: ${c.n}`).join(' · ')}
-          </p>
+          <h1 className="page-title">Controle de Membros</h1>
+          <p className="page-sub">Ficha completa de cada desbravador e controle do que precisa ser atualizado no SGC.</p>
         </div>
         <div className="head-actions">
+          <button className="btn" onClick={() => fileRef.current?.click()}>
+            <FileUp /> Importar planilha
+          </button>
           <button className="btn" onClick={() => setBulk(true)}>
             <ListPlus /> Adicionar vários
           </button>
-          <button className="btn btn-primary" onClick={() => setForm({})}>
+          <button className="btn btn-primary" onClick={() => setProfile({})}>
             <UserPlus /> Novo membro
           </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv,text/csv"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onFile(f);
+              e.target.value = '';
+            }}
+          />
         </div>
       </div>
+
+      <div className="grid grid-4" style={{ marginBottom: 18 }}>
+        {counts.map((c) => (
+          <button
+            key={c.unit.id}
+            className="card unit-count"
+            style={{ borderColor: unit === c.unit.id ? c.unit.color : undefined }}
+            onClick={() => setUnit(unit === c.unit.id ? '' : c.unit.id)}
+          >
+            <UnitLogo unit={c.unit} size={46} />
+            <div>
+              <div className="small muted">{c.unit.name}</div>
+              <div className="stat-value" style={{ fontSize: 22 }}>
+                {c.n} <span className="tiny">membro(s)</span>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {pendingCount > 0 && view !== 'pendentes' && (
+        <div className="notice warn" style={{ marginBottom: 18, alignItems: 'center' }}>
+          <RefreshCw />
+          <div className="grow">
+            <b>{pendingCount} ficha(s)</b> com alterações que ainda precisam ser lançadas no SGC.
+          </div>
+          <button className="btn btn-sm" onClick={() => setView('pendentes')}>
+            Ver pendências
+          </button>
+        </div>
+      )}
 
       <div className="card">
         <div className="toolbar">
           <div className="search">
             <Search />
-            <input className="input" placeholder="Buscar por nome ou responsável…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input className="input" placeholder="Buscar por nome, CPF, código SGC…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <select className="select" value={unit} onChange={(e) => setUnit(e.target.value)}>
             <option value="">Todas as unidades</option>
@@ -119,16 +172,17 @@ export default function Membros({ data }: PageProps) {
           <select className="select" value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="">Todas as funções</option>
             {ROLES.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
+              <option key={r}>{r}</option>
             ))}
           </select>
           <div className="segmented">
-            <button className={!showInactive ? 'on' : ''} onClick={() => setShowInactive(false)}>
+            <button className={view === 'ativos' ? 'on' : ''} onClick={() => setView('ativos')}>
               Ativos
             </button>
-            <button className={showInactive ? 'on' : ''} onClick={() => setShowInactive(true)}>
+            <button className={view === 'pendentes' ? 'on' : ''} onClick={() => setView('pendentes')}>
+              Pendentes SGC {pendingCount > 0 && `(${pendingCount})`}
+            </button>
+            <button className={view === 'inativos' ? 'on' : ''} onClick={() => setView('inativos')}>
               Inativos
             </button>
           </div>
@@ -139,13 +193,25 @@ export default function Membros({ data }: PageProps) {
 
         {list.length === 0 ? (
           <Empty
-            icon={Users}
-            title={data.members.length ? 'Ninguém encontrado' : 'Nenhum membro cadastrado'}
-            text={data.members.length ? 'Ajuste a busca ou os filtros.' : 'Cadastre os desbravadores, conselheiros e diretoria do clube.'}
+            icon={view === 'pendentes' ? CheckCircle2 : Users}
+            title={
+              view === 'pendentes'
+                ? 'Nenhuma pendência com o SGC'
+                : data.members.length
+                  ? 'Ninguém encontrado'
+                  : 'Nenhum membro cadastrado'
+            }
+            text={
+              view === 'pendentes'
+                ? 'Todas as fichas estão iguais às do SGC.'
+                : data.members.length
+                  ? 'Ajuste a busca ou os filtros.'
+                  : 'Importe a planilha exportada do SGC ou cadastre os membros.'
+            }
             action={
               !data.members.length && (
-                <button className="btn btn-primary" onClick={() => setBulk(true)}>
-                  <ListPlus /> Adicionar lista de nomes
+                <button className="btn btn-primary" onClick={() => fileRef.current?.click()}>
+                  <FileUp /> Importar planilha
                 </button>
               )
             }
@@ -157,9 +223,10 @@ export default function Membros({ data }: PageProps) {
                 <tr>
                   <th>Nome</th>
                   <th>Unidade</th>
-                  <th className="hide-sm">Função</th>
-                  <th className="hide-sm">Responsável / contato</th>
-                  <th className="num">Em aberto</th>
+                  <th className="hide-sm">Função / classe</th>
+                  <th className="hide-sm">Ficha</th>
+                  <th>SGC</th>
+                  {data.isExecutive && <th className="num hide-sm">Em aberto</th>}
                   <th />
                 </tr>
               </thead>
@@ -167,30 +234,55 @@ export default function Membros({ data }: PageProps) {
                 {list.map((m) => {
                   const u = m.unitId ? unitById.get(m.unitId) : undefined;
                   const owed = debt.get(m.id) ?? 0;
+                  const years = age(m.birthDate);
+                  const pct = completeness(m);
                   return (
-                    <tr key={m.id}>
+                    <tr key={m.id} style={{ cursor: 'pointer' }} onClick={() => setProfile({ member: m })}>
                       <td>
                         <div className="row">
                           <div className="avatar" style={{ background: (u?.color ?? '#8a918c') + '22', color: u?.color ?? 'var(--text-2)' }}>
                             {initials(m.name)}
                           </div>
-                          <b style={{ fontWeight: 600 }}>{m.name}</b>
+                          <div>
+                            <b style={{ fontWeight: 600 }}>{m.name}</b>
+                            <div className="tiny">
+                              {years !== null ? `${years} anos` : 'Sem data de nascimento'}
+                              {m.sgcId && ` · SGC ${m.sgcId}`}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td>
                         <UnitChip unit={u} />
                       </td>
-                      <td className="hide-sm">
-                        <span className="badge neutral">{roleLabel(m.role)}</span>
+                      <td className="hide-sm small">
+                        {roleLabel(m.role)}
+                        {m.currentClass && <div className="tiny">Classe {m.currentClass}</div>}
                       </td>
-                      <td className="hide-sm small muted">
-                        {[m.guardian, m.phone].filter(Boolean).join(' · ') || '—'}
+                      <td className="hide-sm" style={{ minWidth: 110 }}>
+                        <div className="tiny" style={{ marginBottom: 4 }}>
+                          {pct}%
+                        </div>
+                        <Bar pct={pct} color={pct === 100 ? 'var(--success)' : pct >= 60 ? 'var(--warning)' : 'var(--danger)'} />
                       </td>
-                      <td className="num">{owed ? <b className="down">{money(owed)}</b> : <span className="up small">Em dia</span>}</td>
-                      <td className="actions">
-                        <button className="icon-btn" aria-label="Editar" onClick={() => setForm({ member: m })}>
-                          <Pencil />
-                        </button>
+                      <td>
+                        {m.sgcPending ? (
+                          <span className="badge parcial" title={`${m.sgcChanges?.length ?? 0} alteração(ões)`}>
+                            Pendente
+                          </span>
+                        ) : (
+                          <span className="badge pago">Em dia</span>
+                        )}
+                      </td>
+                      {data.isExecutive && (
+                        <td className="num hide-sm">{owed ? <b className="down">{money(owed)}</b> : <span className="up small">—</span>}</td>
+                      )}
+                      <td className="actions" onClick={(e) => e.stopPropagation()}>
+                        {m.sgcPending && (
+                          <button className="icon-btn" title="Marcar como atualizado no SGC" onClick={() => markSynced(m)}>
+                            <CheckCircle2 />
+                          </button>
+                        )}
                         <button className="icon-btn danger" aria-label="Excluir" onClick={() => del(m)}>
                           <Trash2 />
                         </button>
@@ -204,108 +296,159 @@ export default function Membros({ data }: PageProps) {
         )}
       </div>
 
-      {form && <MemberForm data={data} member={form.member} onClose={() => setForm(null)} />}
+      {profile && <MemberProfile data={data} member={profile.member} onClose={() => setProfile(null)} />}
       {bulk && <BulkForm data={data} onClose={() => setBulk(false)} />}
+      {importRows && <ImportDialog data={data} rows={importRows} onClose={() => setImportRows(null)} />}
     </div>
   );
 }
 
-function MemberForm({ data, member, onClose }: { data: PageProps['data']; member?: Member; onClose: () => void }) {
-  const [name, setName] = useState(member?.name ?? '');
-  const [unitId, setUnitId] = useState(member?.unitId ?? '');
-  const [role, setRole] = useState<MemberRole>(member?.role ?? 'desbravador');
-  const [guardian, setGuardian] = useState(member?.guardian ?? '');
-  const [phone, setPhone] = useState(member?.phone ?? '');
-  const [active, setActive] = useState(member?.active ?? true);
-  const [addToCharges, setAddToCharges] = useState(true);
-  const openCharges = data.charges.filter((c) => !c.archived);
+// ---------------- Importar planilha (SGC ou outra) ----------------
+type Target = ProfileKey | 'name' | 'unit' | 'role' | '';
+
+function guessTarget(header: string): Target {
+  const h = normalize(header);
+  if (['nome', 'nome completo', 'desbravador', 'membro'].includes(h)) return 'name';
+  if (['unidade'].includes(h)) return 'unit';
+  if (['funcao', 'cargo'].includes(h)) return 'role';
+  for (const f of FIELDS) {
+    const names = [f.label, ...(f.aliases ?? [])].map(normalize);
+    if (names.includes(h)) return f.key;
+  }
+  for (const f of FIELDS) if ([f.label, ...(f.aliases ?? [])].some((n) => h.includes(normalize(n)) && normalize(n).length > 3)) return f.key;
+  return '';
+}
+
+function ImportDialog({ data, rows, onClose }: { data: PageProps['data']; rows: string[][]; onClose: () => void }) {
+  const [header, ...body] = rows;
+  const [map, setMap] = useState<Target[]>(() => header.map(guessTarget));
+  const [busy, setBusy] = useState(false);
+  const nameCol = map.indexOf('name');
+
+  const plan = useMemo(() => {
+    if (nameCol < 0) return { create: [] as Member[], update: [] as Member[] };
+    const byName = new Map(data.members.map((m) => [normalize(m.name), m]));
+    const bySgc = new Map(data.members.filter((m) => m.sgcId).map((m) => [normalize(m.sgcId!), m]));
+    const unitByName = new Map(data.units.map((u) => [normalize(u.name).replace(/^unidade\s+/, '').replace(/-/g, ' '), u.id]));
+    const create: Member[] = [];
+    const update: Member[] = [];
+    const now = Date.now();
+    for (const r of body) {
+      const name = (r[nameCol] ?? '').trim();
+      if (!name) continue;
+      const sgcCol = map.indexOf('sgcId');
+      const existing = (sgcCol >= 0 && r[sgcCol] && bySgc.get(normalize(r[sgcCol]))) || byName.get(normalize(name));
+      const m: Member = existing
+        ? { ...existing }
+        : { id: uid(), name, unitId: null, role: 'Desbravador', active: true, createdAt: now };
+      map.forEach((t, i) => {
+        const v = (r[i] ?? '').trim();
+        if (!t || !v) return;
+        if (t === 'name') m.name = v;
+        else if (t === 'unit') m.unitId = unitByName.get(normalize(v).replace(/^unidade\s+/, '').replace(/-/g, ' ')) ?? m.unitId;
+        else if (t === 'role') m.role = ROLES.find((x) => normalize(x).startsWith(normalize(v).slice(0, 6))) ?? v;
+        else {
+          const f = FIELDS.find((x) => x.key === t);
+          m[t] = f?.type === 'date' ? toIsoDate(v) : v;
+        }
+      });
+      // dados vindos do SGC: ficha fica "em dia"
+      m.sgcPending = false;
+      m.sgcChanges = [];
+      m.sgcSyncedAt = now;
+      m.updatedAt = now;
+      (existing ? update : create).push(m);
+    }
+    return { create, update };
+  }, [map, body, nameCol, data.members, data.units]);
 
   const submit = async () => {
-    if (!name.trim()) return;
-    const id = member?.id ?? uid();
-    const ok = await run(async () => {
-      await save('members', {
-        id,
-        name: name.trim(),
-        unitId: unitId || null,
-        role,
-        guardian: guardian.trim(),
-        phone: phone.trim(),
-        active,
-        createdAt: member?.createdAt ?? Date.now(),
-      });
-      if (!member && addToCharges)
-        await Promise.all(openCharges.map((c) => save('charges', { ...c, memberIds: [...c.memberIds, id] })));
-    }, member ? 'Membro atualizado' : 'Membro cadastrado');
+    setBusy(true);
+    const ok = await run(
+      () => Promise.all([...plan.create, ...plan.update].map((m) => save('members', m))),
+      `${plan.create.length} cadastrado(s), ${plan.update.length} atualizado(s)`,
+    );
+    setBusy(false);
     if (ok) onClose();
   };
 
+  const options: { v: Target; l: string }[] = [
+    { v: '', l: '— Ignorar —' },
+    { v: 'name', l: 'Nome' },
+    { v: 'unit', l: 'Unidade' },
+    { v: 'role', l: 'Função' },
+    ...FIELDS.map((f) => ({ v: f.key as Target, l: f.label })),
+  ];
+
   return (
     <Modal
-      title={member ? 'Editar membro' : 'Novo membro'}
+      wide
+      title="Importar planilha de membros"
       onClose={onClose}
       footer={
         <>
+          <span className="small muted grow">
+            {nameCol < 0 ? 'Indique qual coluna tem o nome.' : `${plan.create.length} novo(s) · ${plan.update.length} atualização(ões)`}
+          </span>
           <button className="btn" onClick={onClose}>
             Cancelar
           </button>
-          <button className="btn btn-primary" disabled={!name.trim()} onClick={submit}>
-            Salvar
+          <button className="btn btn-primary" disabled={nameCol < 0 || busy || !(plan.create.length + plan.update.length)} onClick={submit}>
+            Importar
           </button>
         </>
       }
     >
-      <div className="form-grid">
-        <Field label="Nome completo" full>
-          <input className="input" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
-        </Field>
-        <Field label="Unidade">
-          <select className="select" value={unitId} onChange={(e) => setUnitId(e.target.value)}>
-            <option value="">Sem unidade</option>
-            {data.activeUnits.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Função">
-          <select className="select" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
-            {ROLES.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Responsável (opcional)">
-          <input className="input" value={guardian} onChange={(e) => setGuardian(e.target.value)} />
-        </Field>
-        <Field label="Telefone (opcional)">
-          <input className="input" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </Field>
-        {member ? (
-          <label className="check-row full" style={{ border: '1px solid var(--border)', borderRadius: 10 }}>
-            <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
-            Membro ativo
-          </label>
-        ) : (
-          openCharges.length > 0 && (
-            <label className="check-row full" style={{ border: '1px solid var(--border)', borderRadius: 10 }}>
-              <input type="checkbox" checked={addToCharges} onChange={(e) => setAddToCharges(e.target.checked)} />
-              Incluir nas cobranças em aberto ({openCharges.map((c) => c.title).join(', ')})
-            </label>
-          )
-        )}
+      <div className="stack" style={{ gap: 14 }}>
+        <p className="small muted">
+          Exporte a lista de membros do SGC (ou use qualquer planilha), salve como <b>CSV</b> e confira abaixo a qual campo corresponde cada
+          coluna. Quem já está cadastrado (mesmo nome ou código SGC) é atualizado; os demais são criados.
+        </p>
+        <div className="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Coluna da planilha</th>
+                <th>Exemplo</th>
+                <th>Campo no sistema</th>
+              </tr>
+            </thead>
+            <tbody>
+              {header.map((h, i) => (
+                <tr key={i}>
+                  <td>
+                    <b style={{ fontWeight: 600 }}>{h || `Coluna ${i + 1}`}</b>
+                  </td>
+                  <td className="small muted">{body[0]?.[i] ?? ''}</td>
+                  <td>
+                    <select
+                      className="select"
+                      style={{ height: 36 }}
+                      value={map[i]}
+                      onChange={(e) => setMap(map.map((x, j) => (j === i ? (e.target.value as Target) : x)))}
+                    >
+                      {options.map((o) => (
+                        <option key={o.v} value={o.v}>
+                          {o.l}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </Modal>
   );
 }
 
+// ---------------- Adicionar vários ----------------
 function BulkForm({ data, onClose }: { data: PageProps['data']; onClose: () => void }) {
   const [text, setText] = useState('');
   const [unitId, setUnitId] = useState('');
-  const [role, setRole] = useState<MemberRole>('desbravador');
+  const [role, setRole] = useState('Desbravador');
   const existing = new Set(data.members.map((m) => normalize(m.name)));
   const names = [...new Set(text.split('\n').map((l) => l.replace(/^\s*[\d.\-)*•]+\s*/, '').trim()).filter(Boolean))];
   const fresh = names.filter((n) => !existing.has(normalize(n)));
@@ -316,7 +459,16 @@ function BulkForm({ data, onClose }: { data: PageProps['data']; onClose: () => v
       () =>
         Promise.all(
           fresh.map((name, i) =>
-            save('members', { id: uid(), name, unitId: unitId || null, role, active: true, createdAt: now + i }),
+            save('members', {
+              id: uid(),
+              name,
+              unitId: unitId || null,
+              role,
+              active: true,
+              createdAt: now + i,
+              sgcPending: true,
+              sgcChanges: [{ field: 'name', from: '—', to: 'Cadastro novo — incluir no SGC', at: now }],
+            }),
           ),
         ),
       `${fresh.length} membro(s) cadastrado(s)`,
@@ -364,11 +516,9 @@ function BulkForm({ data, onClose }: { data: PageProps['data']; onClose: () => v
           </select>
         </Field>
         <Field label="Função">
-          <select className="select" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
+          <select className="select" value={role} onChange={(e) => setRole(e.target.value)}>
             {ROLES.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
+              <option key={r}>{r}</option>
             ))}
           </select>
         </Field>

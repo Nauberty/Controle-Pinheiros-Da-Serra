@@ -166,6 +166,7 @@ td.actions { width: 1%; white-space: nowrap; text-align: right; }
 .badge.method-dinheiro { background: var(--success-bg); color: var(--success); }
 .badge.method-cartao { background: var(--info-bg); color: var(--info); }
 .badge.method-outro { background: var(--surface-2); color: var(--text-2); }
+.unit-logo { object-fit: contain; flex: none; display: inline-block; }
 .unit-chip { display: inline-flex; align-items: center; gap: 7px; font-weight: 500; white-space: nowrap; }
 .pts { font-family: var(--display); font-weight: 600; font-size: 17px; }
 
@@ -347,3 +348,17 @@ td.actions { width: 1%; white-space: nowrap; text-align: right; }
   .hide-sm { display: none; }
   td, th { padding: 10px; }
 }
+
+/* ---------- membros ---------- */
+.unit-count { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; text-align: left; border: 1px solid var(--border); font: inherit; transition: border-color .15s, box-shadow .15s; }
+.unit-count:hover { box-shadow: var(--shadow); }
+.profile-head { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.avatar.lg { width: 64px; height: 64px; border-radius: 18px; font-size: 22px; }
+.profile-name { font-family: var(--display); font-size: 24px; font-weight: 600; color: var(--forest-900); }
+.role-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+.role-badge.executiva { background: #fdf3d7; color: #8a6510; }
+.role-badge.regular { background: var(--info-bg); color: var(--info); }
+@media (max-width: 560px) {
+  .unit-count { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+.modal .tabs { flex-wrap: wrap; }

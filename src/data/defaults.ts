@@ -1,10 +1,10 @@
 import type { DB, Settings, Unit } from '../types';
 
 export const DEFAULT_UNITS: Unit[] = [
-  { id: 'u1', name: 'Unidade 1', color: '#2f7d3a', order: 1, active: true },
-  { id: 'u2', name: 'Unidade 2', color: '#c0392b', order: 2, active: true },
-  { id: 'u3', name: 'Unidade 3', color: '#2c6db5', order: 3, active: true },
-  { id: 'u4', name: 'Unidade 4', color: '#d49a1c', order: 4, active: true },
+  { id: 'u1', name: 'Pau-Brasil', color: '#5fae1e', logo: 'unidades/pau-brasil.png', order: 1, active: true },
+  { id: 'u2', name: 'Cedro', color: '#7d858c', logo: 'unidades/cedro.png', order: 2, active: true },
+  { id: 'u3', name: 'Chorão', color: '#9b6fd6', logo: 'unidades/chorao.png', order: 3, active: true },
+  { id: 'u4', name: 'Ipê', color: '#e2649c', logo: 'unidades/ipe.png', order: 4, active: true },
 ];
 
 export const DEFAULT_SETTINGS: Settings = {

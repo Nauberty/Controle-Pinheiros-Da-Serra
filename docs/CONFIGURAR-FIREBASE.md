@@ -34,13 +34,25 @@ As regras só deixam entrar quem está na lista **acesso**. O primeiro e-mail é
 1. No **Firestore Database**, aba **Dados**, clique em **+ Iniciar coleção**.
 2. ID da coleção: `acesso` → Próxima.
 3. ID do documento: **seu e-mail em letras minúsculas** (ex.: `fulano@gmail.com`).
-4. Adicione um campo: nome `name`, tipo *string*, valor = seu nome → **Salvar**.
+4. Adicione dois campos:
+   - nome `name`, tipo *string*, valor = seu nome
+   - nome `role`, tipo *string*, valor = `executiva`
+5. Clique em **Salvar**.
+
+### Níveis de acesso
+
+| Nível | O que acessa |
+|---|---|
+| **Diretoria executiva** (`executiva`) | Tudo: Painel, Pontuação, Controle de Membros, **Tesouraria** e Configurações |
+| **Diretoria regular** (`regular`) | Painel, Pontuação e Controle de Membros. **Não vê a Tesouraria.** |
+
+O bloqueio não é só visual: as próprias regras do banco impedem a diretoria regular de ler os dados financeiros.
 
 ## 5. Criar os logins da diretoria
 
 1. **Authentication → Usuários → Adicionar usuário**.
 2. Informe o e-mail e uma senha provisória. Repita para cada membro da diretoria.
-3. No sistema, em **Configurações → Diretoria com acesso**, libere o e-mail de cada pessoa.
+3. No sistema, em **Configurações → Diretoria com acesso**, libere o e-mail de cada pessoa e escolha **Diretoria executiva** ou **Diretoria regular**.
 
 > A pessoa pode trocar a senha pela opção **"Esqueci minha senha"** na tela de login.
 
@@ -78,5 +90,6 @@ export const firebaseConfig: FirebaseOptions | null = {
 | Mensagem | Solução |
 |---|---|
 | "E-mail ou senha incorretos" | Confira se o usuário foi criado em Authentication → Usuários. |
-| "Seu e-mail ainda não tem permissão…" | O e-mail não está na coleção `acesso`, ou está com letras maiúsculas. |
+| "Acesso pendente" | O e-mail não está na coleção `acesso`, ou está com letras maiúsculas. |
+| A Tesouraria não aparece | O nível da pessoa é `regular`. Uma pessoa da diretoria executiva pode mudar em Configurações. |
 | A tela de login não abre ou dá erro de domínio | Adicione `nauberty.github.io` em Authentication → Configurações → Domínios autorizados. |

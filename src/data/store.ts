@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react';
-import { COLLECTIONS, type CollectionName, type DB } from '../types';
+import { COLLECTIONS, type AccessRole, type CollectionName, type DB } from '../types';
 import type { Backend, Item } from './backend';
 import { EMPTY_DB, mergeSettings, mergeUnits } from './defaults';
 
@@ -13,6 +13,7 @@ let state: State = { db: structuredClone(EMPTY_DB), loaded: new Set(), error: nu
 let backend: Backend | null = null;
 let stop: (() => void) | null = null;
 let currentUser: string | undefined;
+let currentRole: AccessRole = 'executiva';
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -25,10 +26,11 @@ function friendlyError(e: Error & { code?: string }) {
   return e.message;
 }
 
-export function connect(b: Backend, userEmail?: string) {
+export function connect(b: Backend, userEmail?: string, role: AccessRole = 'executiva') {
   stop?.();
   backend = b;
   currentUser = userEmail;
+  currentRole = role;
   state = { db: structuredClone(EMPTY_DB), loaded: new Set(), error: null };
   emit();
   stop = b.start(
@@ -72,6 +74,10 @@ export function useData() {
       ready: COLLECTIONS.every((c) => s.loaded.has(c)),
       error: s.error,
       mode: backend?.mode ?? 'local',
+      role: currentRole,
+      /** Tesouraria, configurações e backup: somente diretoria executiva */
+      isExecutive: currentRole === 'executiva',
+      userEmail: currentUser,
     };
   }, [s]);
 }

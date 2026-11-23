@@ -27,10 +27,22 @@
 - Entradas, saídas, saldo em caixa, valor a receber e total recebido por forma de pagamento.
 - Exportação para planilha (CSV que abre no Excel).
 
-### 👥 Membros
-- Cadastro de desbravadores, conselheiros e diretoria por unidade.
-- **Adicionar vários de uma vez**, colando uma lista de nomes.
-- Quanto cada pessoa ainda deve.
+### 👥 Controle de Membros
+- **Ficha completa** de cada desbravador, com os mesmos campos do SGC: dados pessoais, contato e endereço, responsáveis, igreja, saúde (tipo sanguíneo, alergias, medicamentos), classe atual, classes concluídas, especialidades e investiduras.
+- **Importação da planilha exportada do SGC** (CSV), com as colunas reconhecidas automaticamente.
+- **Pendências do SGC**: toda alteração feita aqui fica registrada (campo, valor anterior, novo valor, quem alterou e quando) até alguém lançar no SGC e clicar em *Marcar como atualizado no SGC*.
+- Percentual de preenchimento de cada ficha, idade e valor em aberto na tesouraria.
+
+### 🌳 Unidades
+Pau-Brasil, Cedro, Chorão e Ipê, cada uma com seu logo e sua cor.
+
+### 🔐 Níveis de acesso (modo online)
+| Nível | Acessa |
+|---|---|
+| Diretoria executiva | Tudo, inclusive **Tesouraria** e Configurações |
+| Diretoria regular | Painel, Pontuação e Controle de Membros |
+
+O bloqueio da Tesouraria vale também no banco de dados (ver `firestore.rules`), não só na tela.
 
 ### ⚙️ Configurações
 - Nomes e cores das unidades, categorias e contagem regressiva para o Campori.

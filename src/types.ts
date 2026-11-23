@@ -1,25 +1,37 @@
+import type { ProfileKey } from './lib/memberFields';
+
 // Valores em dinheiro são sempre guardados em CENTAVOS (inteiros) para evitar erros de arredondamento.
 
 export interface Unit {
   id: string;
   name: string;
   color: string;
+  logo?: string; // caminho da imagem (ex.: unidades/ipe.png)
   order: number;
   active: boolean;
 }
 
-export type MemberRole = 'desbravador' | 'conselheiro' | 'diretoria' | 'outro';
+export interface SgcChange {
+  field: string;
+  from: string;
+  to: string;
+  at: number;
+  by?: string;
+}
 
-export interface Member {
+export type Member = {
   id: string;
   name: string;
   unitId: string | null;
-  role: MemberRole;
-  guardian?: string; // responsável
-  phone?: string;
+  role: string; // ver ROLES em lib/memberFields
   active: boolean;
   createdAt: number;
-}
+  updatedAt?: number;
+  /** Há alterações feitas aqui que ainda precisam ser lançadas no SGC */
+  sgcPending?: boolean;
+  sgcChanges?: SgcChange[];
+  sgcSyncedAt?: number;
+} & Partial<Record<ProfileKey, string>>;
 
 export interface PointEntry {
   id: string;
@@ -79,9 +91,13 @@ export interface Settings {
   expenseCategories: string[];
 }
 
+/** executiva: acesso total (inclusive Tesouraria) · regular: pontuação e membros */
+export type AccessRole = 'executiva' | 'regular';
+
 export interface Access {
   id: string; // e-mail em minúsculas
   name?: string;
+  role?: AccessRole;
   addedAt: number;
 }
 
@@ -97,3 +113,5 @@ export interface DB {
 
 export type CollectionName = keyof DB;
 export const COLLECTIONS: CollectionName[] = ['units', 'members', 'points', 'charges', 'payments', 'expenses', 'settings'];
+/** Coleções exclusivas da diretoria executiva */
+export const FINANCE_COLLECTIONS: CollectionName[] = ['charges', 'payments', 'expenses'];

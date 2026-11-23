@@ -1,18 +1,46 @@
 rules_version = '2';
 
 // Regras de segurança do banco de dados (Cloud Firestore).
-// Somente quem está logado E tem o e-mail cadastrado na coleção "acesso" pode ler ou alterar os dados.
+//
+// Níveis de acesso (definidos na coleção "acesso", um documento por e-mail):
+//   role: "executiva" → acesso total, inclusive Tesouraria, Configurações e lista de acesso
+//   role: "regular"   → Pontuação e Controle de Membros (sem Tesouraria)
+// Quem não está na coleção "acesso" não consegue ler nem alterar nada.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function autorizado() {
-      return request.auth != null
-        && request.auth.token.email != null
-        && exists(/databases/$(database)/documents/acesso/$(request.auth.token.email.lower()));
+    function meuEmail() {
+      return request.auth.token.email.lower();
     }
 
-    match /{colecao}/{documento} {
-      allow read, write: if autorizado();
+    function liberado() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && exists(/databases/$(database)/documents/acesso/$(meuEmail()));
     }
+
+    function executiva() {
+      return liberado()
+        && get(/databases/$(database)/documents/acesso/$(meuEmail())).data.role == 'executiva';
+    }
+
+    // Lista de acesso: cada um lê o próprio nível; só a executiva vê e altera a lista toda
+    match /acesso/{email} {
+      allow get: if liberado() && email == meuEmail();
+      allow read, write: if executiva();
+    }
+
+    // Toda a diretoria
+    match /members/{id} { allow read, write: if liberado(); }
+    match /points/{id}  { allow read, write: if liberado(); }
+
+    // Toda a diretoria lê; só a executiva altera
+    match /units/{id}    { allow read: if liberado(); allow write: if executiva(); }
+    match /settings/{id} { allow read: if liberado(); allow write: if executiva(); }
+
+    // Tesouraria: somente diretoria executiva
+    match /charges/{id}  { allow read, write: if executiva(); }
+    match /payments/{id} { allow read, write: if executiva(); }
+    match /expenses/{id} { allow read, write: if executiva(); }
   }
 }

@@ -5,7 +5,7 @@ import type { Data } from '../data/store';
 import { save } from '../data/store';
 import { METHODS, amountFor, chargeBalances } from '../lib/finance';
 import { money, moneyInput, normalize, parseMoney, today, uid } from '../lib/format';
-import { Field, Modal, MoneyInput, UnitChip, run } from './ui';
+import { Field, Modal, MoneyInput, UnitChip, UnitLogo, run } from './ui';
 
 function MethodPicker(props: { value: PaymentMethod; onChange: (m: PaymentMethod) => void }) {
   return (
@@ -378,7 +378,7 @@ export function ChargeForm(props: { data: Data; charge?: Charge; onClose: (saved
                 if (!ids.length) return null;
                 return (
                   <button type="button" key={u.id} className="chip" onClick={() => setMany(ids, true)}>
-                    <span className="dot" style={{ ['--unit' as string]: u.color }} />+ {u.name}
+                    <UnitLogo unit={u} size={20} />+ {u.name}
                   </button>
                 );
               })}

@@ -12,6 +12,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   initializeFirestore,
   onSnapshot,
@@ -22,7 +23,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { firebaseConfig } from '../firebase-config';
-import { COLLECTIONS, type Access, type CollectionName } from '../types';
+import { COLLECTIONS, type Access, type AccessRole, type CollectionName } from '../types';
 import type { Backend, Item } from './backend';
 
 let app: FirebaseApp | null = null;
@@ -71,9 +72,26 @@ export function watchAccess(cb: (items: Access[]) => void, onError: (e: Error) =
   );
 }
 
-export async function grantAccess(email: string, name: string) {
+/** Lê o nível de acesso do usuário logado. Retorna null se o e-mail não estiver liberado. */
+export async function getMyAccess(email: string): Promise<Access | null> {
+  try {
+    const snap = await getDoc(doc(init().fs, 'acesso', email.trim().toLowerCase()));
+    if (!snap.exists()) return null;
+    const data = snap.data() as Omit<Access, 'id'>;
+    return { id: snap.id, ...data, role: data.role === 'executiva' ? 'executiva' : 'regular' };
+  } catch (e) {
+    if ((e as { code?: string }).code === 'permission-denied') return null;
+    throw e;
+  }
+}
+
+export async function grantAccess(email: string, name: string, role: AccessRole) {
   const id = email.trim().toLowerCase();
-  await setDoc(doc(init().fs, 'acesso', id), { name: name.trim(), addedAt: Date.now() });
+  await setDoc(doc(init().fs, 'acesso', id), { name: name.trim(), role, addedAt: Date.now() });
+}
+
+export async function setAccessRole(a: Access, role: AccessRole) {
+  await setDoc(doc(init().fs, 'acesso', a.id), { name: a.name ?? '', role, addedAt: a.addedAt ?? Date.now() });
 }
 
 export async function revokeAccess(email: string) {
@@ -82,12 +100,14 @@ export async function revokeAccess(email: string) {
 
 // ---------- Backend de dados ----------
 
-export function createCloudBackend(): Backend {
+export function createCloudBackend(allowed: CollectionName[] = COLLECTIONS): Backend {
   const { fs } = init();
   return {
     mode: 'cloud',
     start(onCollection, onError) {
-      const unsubs = COLLECTIONS.map((name) =>
+      // coleções sem permissão (ex.: tesouraria para a diretoria regular) ficam vazias
+      COLLECTIONS.filter((c) => !allowed.includes(c)).forEach((c) => onCollection(c, []));
+      const unsubs = allowed.map((name) =>
         onSnapshot(
           collection(fs, name),
           (snap) => onCollection(name, snap.docs.map((d) => ({ ...(d.data() as Item), id: d.id }))),

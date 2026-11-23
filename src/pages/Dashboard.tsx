@@ -15,7 +15,7 @@ import { navigate } from '../lib/router';
 import { ranking } from '../lib/points';
 import { cashSummary, chargeSummary, methodLabel } from '../lib/finance';
 import { dateShort, money, signed } from '../lib/format';
-import { Bar, Empty, Stat } from '../components/ui';
+import { Bar, Empty, Stat, UnitLogo } from '../components/ui';
 import PointForm from '../components/PointForm';
 import { PaymentForm } from '../components/FinanceForms';
 import type { PageProps } from './types';
@@ -69,16 +69,18 @@ export default function Dashboard({ data }: PageProps) {
         )}
       </div>
 
-      <div className="grid grid-4" style={{ marginBottom: 22 }}>
-        <Stat icon={ArrowDownCircle} label="Entradas" value={money(cash.income)} />
-        <Stat icon={ArrowUpCircle} tone="red" label="Saídas" value={money(cash.out)} />
-        <Stat icon={Wallet} tone="blue" label="Saldo em caixa" value={money(cash.balance)} />
-        <Stat icon={CalendarClock} tone="amber" label="A receber" value={money(cash.toReceive)} />
-      </div>
+      {data.isExecutive && (
+        <div className="grid grid-4" style={{ marginBottom: 22 }}>
+          <Stat icon={ArrowDownCircle} label="Entradas" value={money(cash.income)} />
+          <Stat icon={ArrowUpCircle} tone="red" label="Saídas" value={money(cash.out)} />
+          <Stat icon={Wallet} tone="blue" label="Saldo em caixa" value={money(cash.balance)} />
+          <Stat icon={CalendarClock} tone="amber" label="A receber" value={money(cash.toReceive)} />
+        </div>
+      )}
 
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
         {/* Ranking */}
-        <div className="card">
+        <div className={`card ${data.isExecutive ? '' : 'span-2'}`}>
           <div className="card-head">
             <div className="card-title">
               <Trophy /> Ranking das unidades
@@ -105,7 +107,7 @@ export default function Dashboard({ data }: PageProps) {
                   <div className="grow">
                     <div className="row-between" style={{ marginBottom: 6 }}>
                       <span className="unit-chip">
-                        <span className="dot" />
+                        <UnitLogo unit={r.unit} size={30} />
                         <b style={{ fontWeight: 600 }}>{r.unit.name}</b>
                       </span>
                       <span className="pts">{r.total} pts</span>
@@ -121,7 +123,8 @@ export default function Dashboard({ data }: PageProps) {
           </div>
         </div>
 
-        {/* Cobranças */}
+        {/* Cobranças (somente diretoria executiva) */}
+        {data.isExecutive && (
         <div className="card">
           <div className="card-head">
             <div className="card-title">
@@ -187,6 +190,8 @@ export default function Dashboard({ data }: PageProps) {
             )}
           </div>
         </div>
+
+        )}
 
         {/* Atividade recente */}
         <div className="card span-2">

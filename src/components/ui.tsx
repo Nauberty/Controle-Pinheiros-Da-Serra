@@ -116,11 +116,16 @@ export function Empty(props: { icon: LucideIcon; title: string; text?: string; a
   );
 }
 
+export function UnitLogo({ unit, size = 28 }: { unit: Unit; size?: number }) {
+  if (!unit.logo) return <span className="dot" style={{ ['--unit' as string]: unit.color, width: size * 0.4, height: size * 0.4 }} />;
+  return <img className="unit-logo" src={'./' + unit.logo} alt="" width={size} height={size} />;
+}
+
 export function UnitChip({ unit }: { unit?: Unit }) {
   if (!unit) return <span className="muted">Sem unidade</span>;
   return (
     <span className="unit-chip">
-      <span className="dot" style={{ ['--unit' as string]: unit.color }} />
+      <UnitLogo unit={unit} size={22} />
       {unit.name}
     </span>
   );

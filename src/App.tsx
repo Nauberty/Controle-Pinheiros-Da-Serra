@@ -3,7 +3,8 @@ import type { User } from 'firebase/auth';
 import { LayoutDashboard, LogOut, Settings as SettingsIcon, Trophy, Users, Wallet, type LucideIcon } from 'lucide-react';
 import { connect, disconnect, useData } from './data/store';
 import { createLocalBackend } from './data/localBackend';
-import { cloudEnabled, createCloudBackend, logout, watchAuth } from './data/cloud';
+import { cloudEnabled, createCloudBackend, getMyAccess, logout, watchAuth } from './data/cloud';
+import { COLLECTIONS, FINANCE_COLLECTIONS } from './types';
 import { ConfirmHost, Toasts } from './components/ui';
 import Login from './components/Login';
 import Dashboard from './pages/Dashboard';
@@ -14,12 +15,12 @@ import Configuracoes from './pages/Configuracoes';
 import { navigate, type Route } from './lib/router';
 
 
-const NAV: { id: Route; label: string; short: string; icon: LucideIcon }[] = [
+const NAV: { id: Route; label: string; short: string; icon: LucideIcon; executive?: boolean }[] = [
   { id: 'painel', label: 'Painel', short: 'Painel', icon: LayoutDashboard },
   { id: 'pontuacao', label: 'Pontuação', short: 'Pontos', icon: Trophy },
-  { id: 'tesouraria', label: 'Tesouraria', short: 'Caixa', icon: Wallet },
-  { id: 'membros', label: 'Membros', short: 'Membros', icon: Users },
-  { id: 'configuracoes', label: 'Configurações', short: 'Ajustes', icon: SettingsIcon },
+  { id: 'tesouraria', label: 'Tesouraria', short: 'Caixa', icon: Wallet, executive: true },
+  { id: 'membros', label: 'Controle de Membros', short: 'Membros', icon: Users },
+  { id: 'configuracoes', label: 'Configurações', short: 'Ajustes', icon: SettingsIcon, executive: true },
 ];
 
 function readRoute(): Route {
@@ -31,6 +32,7 @@ export default function App() {
   const [route, setRoute] = useState<Route>(readRoute);
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(!cloudEnabled);
+  const [denied, setDenied] = useState(false);
 
   useEffect(() => {
     const onHash = () => {
@@ -46,11 +48,28 @@ export default function App() {
       connect(createLocalBackend());
       return;
     }
-    return watchAuth((u) => {
+    return watchAuth(async (u) => {
+      setDenied(false);
+      if (!u) {
+        disconnect();
+        setUser(null);
+        setAuthReady(true);
+        return;
+      }
+      try {
+        const access = await getMyAccess(u.email ?? '');
+        if (!access) {
+          setDenied(true);
+        } else {
+          const role = access.role ?? 'regular';
+          const allowed = role === 'executiva' ? COLLECTIONS : COLLECTIONS.filter((c) => !FINANCE_COLLECTIONS.includes(c));
+          connect(createCloudBackend(allowed), u.email ?? undefined, role);
+        }
+      } catch {
+        setDenied(true);
+      }
       setUser(u);
       setAuthReady(true);
-      if (u) connect(createCloudBackend(), u.email ?? undefined);
-      else disconnect();
     });
   }, []);
 
@@ -61,12 +80,31 @@ export default function App() {
       </div>
     );
   if (cloudEnabled && !user) return <Login />;
+  if (denied)
+    return (
+      <div className="splash">
+        <div className="login-card" style={{ marginTop: 70 }}>
+          <img src="./logo.png" alt="" />
+          <h1>Acesso pendente</h1>
+          <p className="muted" style={{ margin: '12px 0 20px' }}>
+            O e-mail <b>{user?.email}</b> ainda não foi liberado. Peça a alguém da diretoria executiva para liberar seu acesso em
+            Configurações → Diretoria com acesso.
+          </p>
+          <button className="btn" onClick={() => logout()}>
+            Sair
+          </button>
+        </div>
+      </div>
+    );
 
   return <Shell route={route} user={user} />;
 }
 
-function Shell({ route, user }: { route: Route; user: User | null }) {
+function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
   const data = useData();
+  const nav = NAV.filter((n) => !n.executive || data.isExecutive);
+  // diretoria regular não abre telas exclusivas da executiva
+  const route = nav.some((n) => n.id === wanted) ? wanted : 'painel';
   const Page = { painel: Dashboard, pontuacao: Pontuacao, tesouraria: Tesouraria, membros: Membros, configuracoes: Configuracoes }[route];
 
   return (
@@ -80,7 +118,7 @@ function Shell({ route, user }: { route: Route; user: User | null }) {
           </div>
         </div>
         <nav className="nav">
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <button key={n.id} className={`nav-item ${route === n.id ? 'active' : ''}`} onClick={() => navigate(n.id)}>
               <n.icon />
               {n.label}
@@ -96,6 +134,10 @@ function Shell({ route, user }: { route: Route; user: User | null }) {
             <>
               <span className="user" title={user.email ?? ''}>
                 {user.email}
+                <br />
+                <span style={{ color: 'var(--sand-300)' }}>
+                  Diretoria {data.isExecutive ? 'executiva' : 'regular'}
+                </span>
               </span>
               <button className="link-btn" onClick={() => logout()}>
                 <LogOut size={14} /> Sair
@@ -112,6 +154,11 @@ function Shell({ route, user }: { route: Route; user: User | null }) {
             <div className="brand-name">{data.settings.clubName}</div>
           </div>
           <span className={`sync-dot ${data.mode === 'cloud' ? 'on' : ''}`} title={data.mode === 'cloud' ? 'Online' : 'Local'} />
+          {user && (
+            <button className="icon-btn" style={{ color: '#fff' }} onClick={() => logout()} aria-label="Sair">
+              <LogOut />
+            </button>
+          )}
         </header>
 
         {data.error ? (
@@ -133,7 +180,7 @@ function Shell({ route, user }: { route: Route; user: User | null }) {
       </main>
 
       <nav className="bottom-nav">
-        {NAV.map((n) => (
+        {nav.map((n) => (
           <button key={n.id} className={route === n.id ? 'active' : ''} onClick={() => navigate(n.id)}>
             <n.icon />
             {n.short}

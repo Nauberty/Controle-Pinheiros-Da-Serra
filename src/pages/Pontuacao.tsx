@@ -5,7 +5,7 @@ import { removeItem } from '../data/store';
 import { byCategory, ranking } from '../lib/points';
 import { dateBR, monthKey, monthLabel, normalize, signed } from '../lib/format';
 import { downloadCSV } from '../lib/download';
-import { Bar, Empty, UnitChip, confirmDialog, run } from '../components/ui';
+import { Bar, Empty, UnitChip, UnitLogo, confirmDialog, run } from '../components/ui';
 import PointForm from '../components/PointForm';
 import type { PageProps } from './types';
 
@@ -104,7 +104,7 @@ export default function Pontuacao({ data }: PageProps) {
               </button>
             </div>
             <div className="rank-name">
-              <span className="dot" />
+              <UnitLogo unit={r.unit} size={44} />
               {r.unit.name}
             </div>
             <div className="rank-points">

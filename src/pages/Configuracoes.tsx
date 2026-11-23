@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { CloudOff, Cloud, Download, KeyRound, Plus, Save, Shield, Trash2, Upload, X } from 'lucide-react';
-import type { Access, DB, Settings, Unit } from '../types';
+import type { Access, AccessRole, DB, Settings, Unit } from '../types';
 import { COLLECTIONS } from '../types';
 import { replaceAll, save, snapshot } from '../data/store';
-import { cloudEnabled, grantAccess, revokeAccess, watchAccess } from '../data/cloud';
+import { cloudEnabled, grantAccess, revokeAccess, setAccessRole, watchAccess } from '../data/cloud';
 import { downloadFile } from '../lib/download';
 import { today, uid } from '../lib/format';
 import { Field, confirmDialog, run, toast } from '../components/ui';
@@ -218,7 +218,8 @@ function SyncCard({ data }: { data: PageProps['data'] }) {
             <div>
               <b>Modo local.</b> Os dados estão salvos <u>somente neste navegador</u>. Para que toda a diretoria use os mesmos dados,
               configure o banco online gratuito (passo a passo no arquivo <code>docs/CONFIGURAR-FIREBASE.md</code> do repositório). Até
-              lá, faça backups com frequência.
+              lá, faça backups com frequência. Os logins e os níveis de acesso (diretoria executiva e regular) passam a valer no
+              modo online.
             </div>
           </div>
         )}
@@ -227,24 +228,38 @@ function SyncCard({ data }: { data: PageProps['data'] }) {
   );
 }
 
+const ROLE_INFO: Record<AccessRole, { label: string; text: string }> = {
+  executiva: { label: 'Diretoria executiva', text: 'Acesso total: pontuação, membros, tesouraria e configurações.' },
+  regular: { label: 'Diretoria regular', text: 'Pontuação e controle de membros. Não vê a tesouraria.' },
+};
+
 function AccessCard({ currentEmail }: { currentEmail: string }) {
   const [list, setList] = useState<Access[]>([]);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [role, setRole] = useState<AccessRole>('regular');
   useEffect(() => watchAccess(setList, () => {}), []);
+  const me = currentEmail.toLowerCase();
+  const sorted = [...list].sort(
+    (a, b) => Number(b.role === 'executiva') - Number(a.role === 'executiva') || (a.name || a.id).localeCompare(b.name || b.id),
+  );
 
   const add = async () => {
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return toast('Digite um e-mail válido', true);
-    const ok = await run(() => grantAccess(email, name), 'Acesso liberado');
+    const ok = await run(() => grantAccess(email, name, role), 'Acesso liberado');
     if (ok) {
       setEmail('');
       setName('');
     }
   };
   const remove = async (a: Access) => {
-    if (a.id === currentEmail.toLowerCase()) return toast('Você não pode remover o seu próprio acesso.', true);
+    if (a.id === me) return toast('Você não pode remover o seu próprio acesso.', true);
     if (await confirmDialog('Remover acesso?', `${a.name || a.id} não conseguirá mais ver nem alterar os dados.`, { ok: 'Remover' }))
       run(() => revokeAccess(a.id), 'Acesso removido');
+  };
+  const changeRole = (a: Access, r: AccessRole) => {
+    if (a.id === me) return toast('Peça a outra pessoa da diretoria executiva para mudar o seu nível.', true);
+    run(() => setAccessRole(a, r), `${a.name || a.id}: ${ROLE_INFO[r].label}`);
   };
 
   return (
@@ -255,25 +270,55 @@ function AccessCard({ currentEmail }: { currentEmail: string }) {
         </div>
       </div>
       <div className="card-body stack" style={{ gap: 12 }}>
-        <div className="list">
-          {list.map((a) => (
-            <div key={a.id} className="list-item" style={{ padding: '8px 0' }}>
-              <div className="avatar tone-green">
-                <KeyRound />
-              </div>
-              <div className="grow">
-                <div style={{ fontWeight: 600 }}>{a.name || a.id}</div>
-                {a.name && <div className="tiny">{a.id}</div>}
-              </div>
-              <button className="icon-btn danger" onClick={() => remove(a)} aria-label="Remover acesso">
-                <Trash2 />
-              </button>
+        <div className="grid" style={{ gap: 8 }}>
+          {(Object.keys(ROLE_INFO) as AccessRole[]).map((r) => (
+            <div key={r} className="small">
+              <span className={`role-badge ${r}`}>{ROLE_INFO[r].label}</span> <span className="muted">{ROLE_INFO[r].text}</span>
             </div>
           ))}
+        </div>
+        <div className="list">
+          {sorted.map((a) => {
+            const r: AccessRole = a.role === 'executiva' ? 'executiva' : 'regular';
+            return (
+              <div key={a.id} className="list-item" style={{ padding: '8px 0' }}>
+                <div className={`avatar ${r === 'executiva' ? 'tone-amber' : 'tone-blue'}`}>
+                  <KeyRound />
+                </div>
+                <div className="grow">
+                  <div style={{ fontWeight: 600 }}>
+                    {a.name || a.id} {a.id === me && <span className="tiny">(você)</span>}
+                  </div>
+                  {a.name && <div className="tiny">{a.id}</div>}
+                </div>
+                <select
+                  className="select"
+                  style={{ width: 'auto', height: 34 }}
+                  value={r}
+                  disabled={a.id === me}
+                  onChange={(e) => changeRole(a, e.target.value as AccessRole)}
+                >
+                  <option value="executiva">Executiva</option>
+                  <option value="regular">Regular</option>
+                </select>
+                <button className="icon-btn danger" onClick={() => remove(a)} aria-label="Remover acesso">
+                  <Trash2 />
+                </button>
+              </div>
+            );
+          })}
         </div>
         <div className="form-grid">
           <input className="input" placeholder="Nome" value={name} onChange={(e) => setName(e.target.value)} />
           <input className="input" type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <div className="segmented full">
+            <button className={role === 'regular' ? 'on' : ''} onClick={() => setRole('regular')}>
+              Diretoria regular
+            </button>
+            <button className={role === 'executiva' ? 'on' : ''} onClick={() => setRole('executiva')}>
+              Diretoria executiva
+            </button>
+          </div>
         </div>
         <button className="btn btn-sm" onClick={add}>
           <Plus /> Liberar acesso

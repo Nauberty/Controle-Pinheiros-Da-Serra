@@ -4,7 +4,7 @@ import type { PointEntry } from '../types';
 import type { Data } from '../data/store';
 import { save } from '../data/store';
 import { today, uid } from '../lib/format';
-import { Field, Modal, run } from './ui';
+import { Field, Modal, UnitLogo, run } from './ui';
 
 const QUICK = [5, 10, 20, 50, 100];
 
@@ -77,7 +77,7 @@ export default function PointForm(props: { data: Data; entry?: PointEntry; prese
                 className={`chip ${unitIds.includes(u.id) ? 'on' : ''}`}
                 onClick={() => toggleUnit(u.id)}
               >
-                <span className="dot" style={{ ['--unit' as string]: u.color }} />
+                <UnitLogo unit={u} size={22} />
                 {u.name}
               </button>
             ))}
