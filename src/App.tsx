@@ -8,6 +8,7 @@ import { COLLECTIONS, REGULAR_COLLECTIONS } from './types';
 import { requestPersistentStorage } from './lib/backup';
 import { ConfirmHost, Toasts, toast } from './components/ui';
 import Login from './components/Login';
+import InstallPrompt from './components/InstallPrompt';
 import Dashboard from './pages/Dashboard';
 import Pontuacao from './pages/Pontuacao';
 import Tesouraria from './pages/Tesouraria';
@@ -207,6 +208,7 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
 
       <Toasts />
       <ConfirmHost />
+      <InstallPrompt />
     </div>
   );
 }

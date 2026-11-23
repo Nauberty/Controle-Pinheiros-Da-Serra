@@ -377,3 +377,7 @@ td.actions { width: 1%; white-space: nowrap; text-align: right; }
 .nav-item.locked:hover { background: rgba(255,255,255,.03); color: #95a99b; }
 .nav-item .lock { width: 15px; height: 15px; color: var(--sand-500); }
 .bottom-nav button.locked { color: #b9bfbb; }
+.install-prompt { display: flex; gap: 14px; align-items: center; }
+.install-prompt img { width: 64px; height: 64px; border-radius: 16px; flex: none; }
+.install-steps { margin: 16px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+.install-steps svg { vertical-align: -3px; color: var(--info); }
