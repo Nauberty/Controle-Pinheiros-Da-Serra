@@ -42,6 +42,7 @@ function recentlyDismissed() {
 export default function InstallPrompt() {
   const [, force] = useState(0);
   const [open, setOpen] = useState(false);
+  const [guide, setGuide] = useState(false);
 
   useEffect(() => {
     const l = () => force((n) => n + 1);
@@ -57,8 +58,28 @@ export default function InstallPrompt() {
     return () => void listeners.delete(l);
   }, []);
 
+  if (guide && !isStandalone())
+    return (
+      <div className="install-guide" onClick={() => setGuide(false)} role="status">
+        <div className="install-guide-box">
+          {/CriOS/i.test(navigator.userAgent) ? (
+            <>
+              Toque em <b>Compartilhar</b> <Share size={15} /> na barra de endereço
+            </>
+          ) : (
+            <>
+              Toque em <b>⋯</b> e depois em <b>Compartilhar</b> <Share size={15} />
+            </>
+          )}
+          <br />
+          depois em <b>Adicionar à Tela de Início</b>
+        </div>
+        <div className="install-guide-arrow">↓</div>
+      </div>
+    );
   if (!open || isStandalone()) return null;
   const ios = isIOS();
+  const iosChrome = ios && /CriOS/i.test(navigator.userAgent);
   if (!ios && !deferred) return null; // navegador não permite instalar (ou já instalado)
 
   const later = () => {
@@ -94,8 +115,15 @@ export default function InstallPrompt() {
             </button>
           )}
           {ios && (
-            <button className="btn btn-primary" onClick={later}>
-              Entendi
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                setOpen(false);
+                setGuide(true);
+                setTimeout(() => setGuide(false), 12000);
+              }}
+            >
+              Mostrar onde tocar
             </button>
           )}
         </>
@@ -110,14 +138,21 @@ export default function InstallPrompt() {
       </div>
       {ios && (
         <ol className="install-steps">
+          {iosChrome ? (
+            <li>
+              Toque no botão <b>Compartilhar</b> <Share size={16} /> na barra de endereço do Chrome.
+            </li>
+          ) : (
+            <li>
+              Toque nos <b>três pontinhos ⋯</b> ao lado do endereço do site e depois em <b>Compartilhar</b> <Share size={16} />.
+              <div className="tiny">Em iPhones com iOS mais antigo, o botão Compartilhar já aparece direto na barra de baixo.</div>
+            </li>
+          )}
           <li>
-            Toque no botão <b>Compartilhar</b> <Share size={16} /> na barra do Safari.
+            Role para baixo e toque em <b>Adicionar à Tela de Início</b> <PlusSquare size={16} />.
           </li>
           <li>
-            Role e escolha <b>Adicionar à Tela de Início</b> <PlusSquare size={16} />.
-          </li>
-          <li>
-            Toque em <b>Adicionar</b>.
+            Deixe <b>“Abrir como App Web”</b> ligado (se aparecer) e toque em <b>Adicionar</b>.
           </li>
         </ol>
       )}
