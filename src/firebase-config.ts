@@ -20,7 +20,14 @@ import type { FirebaseOptions } from 'firebase/app';
  *   appId: '1:000000000000:web:abcdef',
  * };
  */
-export const firebaseConfig: FirebaseOptions | null = null;
+export const firebaseConfig: FirebaseOptions | null = {
+  apiKey: 'AIzaSyCPeoSYR2O3fsk0hbHdtz36WWKvnHeN1Lw',
+  authDomain: 'pinheros-da-serra.firebaseapp.com',
+  projectId: 'pinheros-da-serra',
+  storageBucket: 'pinheros-da-serra.firebasestorage.app',
+  messagingSenderId: '4752311856',
+  appId: '1:4752311856:web:33dd1c0f3095634970cff5',
+};
 
 /**
  * Logins compartilhados mostrados como botões na tela de entrada.
