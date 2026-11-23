@@ -1,6 +1,6 @@
 // Service worker mínimo: permite instalar o sistema como aplicativo no celular
 // e abrir a tela inicial mesmo sem internet. Os dados ficam a cargo do Firebase.
-const CACHE = 'pinheiros-shell-v1';
+const CACHE = 'pinheiros-shell-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './logo.png'])).then(() => self.skipWaiting()));
