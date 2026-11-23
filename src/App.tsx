@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
-import { LayoutDashboard, LogOut, Settings as SettingsIcon, Trophy, Users, Wallet, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Lock, LogOut, Settings as SettingsIcon, Trophy, Users, Wallet, type LucideIcon } from 'lucide-react';
 import { connect, disconnect, useData } from './data/store';
 import { createLocalBackend } from './data/localBackend';
 import { cloudEnabled, createCloudBackend, getMyAccess, logout, watchAuth } from './data/cloud';
 import { COLLECTIONS, REGULAR_COLLECTIONS } from './types';
 import { requestPersistentStorage } from './lib/backup';
-import { ConfirmHost, Toasts } from './components/ui';
+import { ConfirmHost, Toasts, toast } from './components/ui';
 import Login from './components/Login';
 import Dashboard from './pages/Dashboard';
 import Pontuacao from './pages/Pontuacao';
@@ -104,9 +104,12 @@ export default function App() {
 
 function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
   const data = useData();
-  const nav = NAV.filter((n) => !n.executive || data.isExecutive);
+  const locked = (n: (typeof NAV)[number]) => !!n.executive && !data.isExecutive;
+  const nav = NAV.filter((n) => !locked(n));
   // diretoria regular não abre telas exclusivas da executiva
   const route = nav.some((n) => n.id === wanted) ? wanted : nav[0].id;
+  const go = (n: (typeof NAV)[number]) =>
+    locked(n) ? toast(`🔒 ${n.label}: acesso exclusivo da Diretoria Executiva`, true) : navigate(n.id);
   const Page = { painel: Dashboard, pontuacao: Pontuacao, tesouraria: Tesouraria, membros: Membros, configuracoes: Configuracoes }[route];
 
   return (
@@ -120,10 +123,17 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
           </div>
         </div>
         <nav className="nav">
-          {nav.map((n) => (
-            <button key={n.id} className={`nav-item ${route === n.id ? 'active' : ''}`} onClick={() => navigate(n.id)}>
+          {NAV.map((n) => (
+            <button
+              key={n.id}
+              className={`nav-item ${route === n.id ? 'active' : ''} ${locked(n) ? 'locked' : ''}`}
+              onClick={() => go(n)}
+              aria-disabled={locked(n)}
+              title={locked(n) ? 'Acesso exclusivo da Diretoria Executiva' : undefined}
+            >
               <n.icon />
-              {n.label}
+              <span className="grow">{n.label}</span>
+              {locked(n) && <Lock className="lock" />}
             </button>
           ))}
         </nav>
@@ -182,9 +192,14 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
       </main>
 
       <nav className="bottom-nav">
-        {nav.map((n) => (
-          <button key={n.id} className={route === n.id ? 'active' : ''} onClick={() => navigate(n.id)}>
-            <n.icon />
+        {NAV.map((n) => (
+          <button
+            key={n.id}
+            className={`${route === n.id ? 'active' : ''} ${locked(n) ? 'locked' : ''}`}
+            onClick={() => go(n)}
+            aria-disabled={locked(n)}
+          >
+            {locked(n) ? <Lock /> : <n.icon />}
             {n.short}
           </button>
         ))}

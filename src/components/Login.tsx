@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Crown, LogIn, Users } from 'lucide-react';
 import { login, resetPassword } from '../data/cloud';
 import { LOGIN_ACCOUNTS } from '../firebase-config';
-import { Field } from './ui';
+import { Field, PasswordInput } from './ui';
 
 const MESSAGES: Record<string, string> = {
   'auth/invalid-credential': 'Senha incorreta.',
@@ -77,15 +77,7 @@ export default function Login() {
             </Field>
           )}
           <Field label="Senha">
-            <input
-              className="input"
-              type="password"
-              autoComplete="current-password"
-              required
-              autoFocus
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <PasswordInput autoComplete="current-password" required autoFocus value={password} onChange={setPassword} />
           </Field>
           {msg && <div className={`notice ${msg.ok ? 'info' : 'danger'}`}>{msg.text}</div>}
           <button className="btn btn-primary" style={{ height: 46 }} disabled={busy}>

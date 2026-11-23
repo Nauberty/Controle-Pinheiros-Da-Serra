@@ -7,7 +7,7 @@ import { backupData, daysSinceBackup, decryptBackup, isEncrypted, lastBackupAt, 
 import { cloudEnabled, grantAccess, revokeAccess, setAccessRole, watchAccess } from '../data/cloud';
 import { downloadFile } from '../lib/download';
 import { dateBR, money, signed, uid } from '../lib/format';
-import { Field, Modal, confirmDialog, run, toast } from '../components/ui';
+import { Field, Modal, PasswordInput, confirmDialog, run, toast } from '../components/ui';
 import type { PageProps } from './types';
 
 export default function Configuracoes({ data, user }: PageProps) {
@@ -458,14 +458,7 @@ function BackupCard({ data }: { data: PageProps['data'] }) {
               (BACKUP_PASSWORD) cadastrada no GitHub.
             </p>
             <Field label="Senha do backup">
-              <input
-                className="input"
-                type="password"
-                autoFocus
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && unlock()}
-              />
+              <PasswordInput autoFocus value={password} onChange={setPassword} onEnter={unlock} />
             </Field>
           </div>
         </Modal>

@@ -369,3 +369,11 @@ td.actions { width: 1%; white-space: nowrap; text-align: right; }
 .login-option small { color: var(--text-3); font-size: 12px; }
 .login-option.on { border-color: var(--forest-600); background: var(--forest-50); }
 .login-option.on svg { color: var(--forest-600); }
+
+.password-input { position: relative; }
+.password-input .input { padding-right: 46px; }
+.password-input .icon-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); }
+.nav-item.locked { color: #7f9486; cursor: not-allowed; }
+.nav-item.locked:hover { background: rgba(255,255,255,.03); color: #95a99b; }
+.nav-item .lock { width: 15px; height: 15px; color: var(--sand-500); }
+.bottom-nav button.locked { color: #b9bfbb; }

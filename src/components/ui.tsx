@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { AlertTriangle, CheckCircle2, X, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Eye, EyeOff, X, type LucideIcon } from 'lucide-react';
 import type { Unit } from '../types';
 import type { Status } from '../lib/finance';
 
@@ -53,6 +53,41 @@ export function Field(props: { label: string; children: ReactNode; full?: boolea
       {props.children}
       {props.hint && <small className="tiny">{props.hint}</small>}
     </label>
+  );
+}
+
+/** Campo de senha com o "olho" para mostrar/ocultar o que está sendo digitado. */
+export function PasswordInput(props: {
+  value: string;
+  onChange: (v: string) => void;
+  autoFocus?: boolean;
+  autoComplete?: string;
+  required?: boolean;
+  onEnter?: () => void;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="password-input">
+      <input
+        className="input"
+        type={show ? 'text' : 'password'}
+        value={props.value}
+        autoFocus={props.autoFocus}
+        autoComplete={props.autoComplete}
+        required={props.required}
+        onChange={(e) => props.onChange(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && props.onEnter?.()}
+      />
+      <button
+        type="button"
+        className="icon-btn"
+        onClick={() => setShow(!show)}
+        aria-label={show ? 'Ocultar senha' : 'Mostrar senha'}
+        title={show ? 'Ocultar senha' : 'Mostrar senha'}
+      >
+        {show ? <EyeOff /> : <Eye />}
+      </button>
+    </div>
   );
 }
 
