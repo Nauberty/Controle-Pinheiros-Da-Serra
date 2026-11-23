@@ -161,6 +161,10 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
       </aside>
 
       <main className="main">
+        {/* No celular: barra do topo + menu. No app instalado o menu fica embaixo;
+            no navegador ele fica logo abaixo do topo, para não ficar escondido atrás
+            da barra de endereço do Safari/Chrome. */}
+        <div className="mobile-head">
         <header className="topbar">
           <img src="./logo.png" alt="" />
           <div className="grow">
@@ -173,6 +177,20 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
             </button>
           )}
         </header>
+          <nav className="bottom-nav">
+            {NAV.map((n) => (
+              <button
+                key={n.id}
+                className={`${route === n.id ? 'active' : ''} ${locked(n) ? 'locked' : ''}`}
+                onClick={() => go(n)}
+                aria-disabled={locked(n)}
+              >
+                {locked(n) ? <Lock /> : <n.icon />}
+                {n.short}
+              </button>
+            ))}
+          </nav>
+        </div>
 
         {data.error ? (
           <div className="page">
@@ -192,19 +210,6 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
         )}
       </main>
 
-      <nav className="bottom-nav">
-        {NAV.map((n) => (
-          <button
-            key={n.id}
-            className={`${route === n.id ? 'active' : ''} ${locked(n) ? 'locked' : ''}`}
-            onClick={() => go(n)}
-            aria-disabled={locked(n)}
-          >
-            {locked(n) ? <Lock /> : <n.icon />}
-            {n.short}
-          </button>
-        ))}
-      </nav>
 
       <Toasts />
       <ConfirmHost />
