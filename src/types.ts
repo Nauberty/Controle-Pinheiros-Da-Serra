@@ -101,6 +101,22 @@ export interface Access {
   addedAt: number;
 }
 
+/** Atividade da preparação para o Campori (toda a diretoria acessa) */
+export interface CampActivity {
+  id: string;
+  title: string;
+  description?: string;
+  category: string;
+  responsible?: string;
+  unitId?: string | null; // unidade responsável (opcional)
+  dueDate?: string;
+  done: boolean;
+  doneAt?: number;
+  doneBy?: string;
+  createdAt: number;
+  createdBy?: string;
+}
+
 /** Item excluído, guardado para poder ser restaurado */
 export interface TrashItem {
   id: string;
@@ -119,14 +135,15 @@ export interface DB {
   payments: Payment[];
   expenses: Expense[];
   settings: Settings[];
+  campori: CampActivity[];
   lixeira: TrashItem[];
 }
 
 export type CollectionName = keyof DB;
-export const COLLECTIONS: CollectionName[] = ['units', 'members', 'points', 'charges', 'payments', 'expenses', 'settings', 'lixeira'];
+export const COLLECTIONS: CollectionName[] = ['units', 'members', 'points', 'charges', 'payments', 'expenses', 'settings', 'campori', 'lixeira'];
 /** Coleções financeiras */
 export const FINANCE_COLLECTIONS: CollectionName[] = ['charges', 'payments', 'expenses'];
 /** Coleções que a diretoria regular não pode ler */
 export const EXECUTIVE_ONLY: CollectionName[] = [...FINANCE_COLLECTIONS, 'lixeira', 'members'];
 /** O que a diretoria regular lê: somente o necessário para a Pontuação das Unidades */
-export const REGULAR_COLLECTIONS: CollectionName[] = ['units', 'points', 'settings'];
+export const REGULAR_COLLECTIONS: CollectionName[] = ['units', 'points', 'settings', 'campori'];

@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import './styles.css';
 
+// Impede o zoom com gesto de pinça (iPhone). O toque duplo é bloqueado pelo CSS (touch-action).
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+document.addEventListener('gesturechange', (e) => e.preventDefault());
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
-import { LayoutDashboard, Lock, LogOut, Settings as SettingsIcon, Trophy, Users, Wallet, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Lock, Tent, LogOut, Settings as SettingsIcon, Trophy, Users, Wallet, type LucideIcon } from 'lucide-react';
 import { connect, disconnect, useData } from './data/store';
 import { createLocalBackend } from './data/localBackend';
 import { cloudEnabled, createCloudBackend, getMyAccess, logout, watchAuth } from './data/cloud';
@@ -14,12 +14,14 @@ import Pontuacao from './pages/Pontuacao';
 import Tesouraria from './pages/Tesouraria';
 import Membros from './pages/Membros';
 import Configuracoes from './pages/Configuracoes';
+import Campori from './pages/Campori';
 import { navigate, type Route } from './lib/router';
 
 
 const NAV: { id: Route; label: string; short: string; icon: LucideIcon; executive?: boolean }[] = [
   { id: 'painel', label: 'Painel', short: 'Painel', icon: LayoutDashboard, executive: true },
   { id: 'pontuacao', label: 'Pontuação', short: 'Pontos', icon: Trophy },
+  { id: 'campori', label: 'Atividades Campori', short: 'Campori', icon: Tent },
   { id: 'tesouraria', label: 'Tesouraria', short: 'Caixa', icon: Wallet, executive: true },
   { id: 'membros', label: 'Controle de Membros', short: 'Membros', icon: Users, executive: true },
   { id: 'configuracoes', label: 'Configurações', short: 'Ajustes', icon: SettingsIcon, executive: true },
@@ -111,7 +113,7 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
   const route = nav.some((n) => n.id === wanted) ? wanted : nav[0].id;
   const go = (n: (typeof NAV)[number]) =>
     locked(n) ? toast(`🔒 ${n.label}: acesso exclusivo da Diretoria Executiva`, true) : navigate(n.id);
-  const Page = { painel: Dashboard, pontuacao: Pontuacao, tesouraria: Tesouraria, membros: Membros, configuracoes: Configuracoes }[route];
+  const Page = { painel: Dashboard, pontuacao: Pontuacao, campori: Campori, tesouraria: Tesouraria, membros: Membros, configuracoes: Configuracoes }[route];
 
   return (
     <div className="app">

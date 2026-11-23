@@ -33,6 +33,11 @@
 - **Pendências do SGC**: toda alteração feita aqui fica registrada (campo, valor anterior, novo valor, quem alterou e quando) até alguém lançar no SGC e clicar em *Marcar como atualizado no SGC*.
 - Percentual de preenchimento de cada ficha, idade e valor em aberto na tesouraria.
 
+### ⛺ Atividades Campori
+- Lista de tarefas da preparação para o Campori, com categoria, responsável, unidade e prazo.
+- Marcar e desmarcar como concluída, com o percentual de conclusão e as atividades atrasadas em destaque.
+- Acesso de **toda a diretoria**.
+
 ### 🌳 Unidades
 Pau-Brasil, Cedro, Chorão e Ipê, cada uma com seu logo e sua cor.
 
@@ -40,7 +45,7 @@ Pau-Brasil, Cedro, Chorão e Ipê, cada uma com seu logo e sua cor.
 | Nível | Acessa |
 |---|---|
 | Diretoria executiva | Tudo, inclusive **Tesouraria** e Configurações |
-| Diretoria regular | Somente Pontuação das Unidades |
+| Diretoria regular | Pontuação das Unidades e Atividades Campori |
 
 O bloqueio da Tesouraria vale também no banco de dados (ver `firestore.rules`), não só na tela.
 

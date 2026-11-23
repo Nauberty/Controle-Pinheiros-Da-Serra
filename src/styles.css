@@ -429,3 +429,42 @@ html, body { background: var(--forest-900); }
 @media (max-width: 860px) {
   .mobile-head { background: var(--forest-900); }
 }
+
+.btn-danger-soft { background: var(--danger-bg); border-color: #f2c4be; color: var(--danger); }
+.btn-danger-soft:hover { background: #f8d8d3; }
+
+/* ---------- sem zoom no celular ---------- */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
+@media (max-width: 860px) {
+  /* o iPhone dá zoom ao tocar em campos com letra menor que 16px */
+  .input, .select, .textarea, input, select, textarea { font-size: 16px; }
+}
+
+/* ---------- atividades campori ---------- */
+.camp-progress-main { display: flex; align-items: center; gap: 20px; }
+.camp-pct { font-family: var(--display); font-size: 44px; font-weight: 600; color: var(--forest-700); line-height: 1; min-width: 96px; }
+.camp-list { display: flex; flex-direction: column; }
+.camp-item { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.camp-item:last-child { border-bottom: 0; }
+.camp-check { border: 0; background: none; padding: 2px; cursor: pointer; color: var(--text-3); flex: none; border-radius: 50%; }
+.camp-check svg { width: 26px; height: 26px; }
+.camp-check:hover { color: var(--forest-600); }
+.camp-item.done .camp-check { color: var(--success); }
+.camp-title { font-weight: 600; font-size: 15.5px; overflow-wrap: anywhere; }
+.camp-item.done .camp-title { text-decoration: line-through; color: var(--text-3); }
+.camp-desc { margin-top: 2px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.camp-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-top: 8px; font-size: 12.5px; color: var(--text-2); }
+@media (max-width: 560px) {
+  .camp-pct { font-size: 34px; min-width: 70px; }
+  .camp-progress-main { gap: 12px; }
+}
+/* menu do celular no navegador: 6 abas em coluna (ícone em cima, nome embaixo) */
+@media (max-width: 860px) {
+  .bottom-nav button { flex-direction: column; gap: 2px; font-size: 10.5px; padding: 6px 0; min-width: 0; }
+  .bottom-nav button svg { width: 19px; height: 19px; }
+}
+.rank-pos { white-space: nowrap; }
+@media (max-width: 560px) {
+  .rank-card .icon-btn { width: 30px; height: 30px; }
+  .rank-card .rank-pos { font-size: 12px; }
+}

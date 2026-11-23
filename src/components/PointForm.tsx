@@ -8,10 +8,16 @@ import { Field, Modal, UnitLogo, run } from './ui';
 
 const QUICK = [5, 10, 20, 50, 100];
 
-export default function PointForm(props: { data: Data; entry?: PointEntry; presetUnit?: string; onClose: () => void }) {
+export default function PointForm(props: {
+  data: Data;
+  entry?: PointEntry;
+  presetUnit?: string;
+  presetKind?: 'gain' | 'loss';
+  onClose: () => void;
+}) {
   const { data, entry } = props;
   const [unitIds, setUnitIds] = useState<string[]>(entry ? [entry.unitId] : props.presetUnit ? [props.presetUnit] : []);
-  const [kind, setKind] = useState<'gain' | 'loss'>(entry && entry.points < 0 ? 'loss' : 'gain');
+  const [kind, setKind] = useState<'gain' | 'loss'>(entry ? (entry.points < 0 ? 'loss' : 'gain') : props.presetKind ?? 'gain');
   const [value, setValue] = useState(entry ? String(Math.abs(entry.points)) : '');
   const [category, setCategory] = useState(entry?.category ?? data.settings.pointCategories[0] ?? 'Outros');
   const [description, setDescription] = useState(entry?.description ?? '');
@@ -46,7 +52,7 @@ export default function PointForm(props: { data: Data; entry?: PointEntry; prese
             }),
           ),
         ),
-      entry ? 'Lançamento atualizado' : `${kind === 'gain' ? '+' : '-'}${n} pontos lançados`,
+      entry ? 'Lançamento atualizado' : kind === 'gain' ? `+${n} pontos lançados` : `${n} pontos retirados`,
     );
     setBusy(false);
     if (ok) props.onClose();
@@ -54,7 +60,7 @@ export default function PointForm(props: { data: Data; entry?: PointEntry; prese
 
   return (
     <Modal
-      title={entry ? 'Editar lançamento' : 'Lançar pontos'}
+      title={entry ? 'Editar lançamento' : kind === 'loss' ? 'Retirar pontos' : 'Lançar pontos'}
       onClose={props.onClose}
       footer={
         <>
@@ -62,7 +68,7 @@ export default function PointForm(props: { data: Data; entry?: PointEntry; prese
             Cancelar
           </button>
           <button className="btn btn-primary" disabled={!valid || busy} onClick={submit}>
-            {entry ? 'Salvar alterações' : 'Lançar pontos'}
+            {entry ? 'Salvar alterações' : kind === 'loss' ? 'Retirar pontos' : 'Lançar pontos'}
           </button>
         </>
       }

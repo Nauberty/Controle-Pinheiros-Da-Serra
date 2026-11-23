@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Crown, Download, Pencil, Plus, Search, Trash2, Trophy } from 'lucide-react';
+import { Crown, Download, Pencil, Minus, Plus, Search, Trash2, Trophy } from 'lucide-react';
 import type { PointEntry } from '../types';
 import { removeItem } from '../data/store';
 import { byCategory, ranking } from '../lib/points';
@@ -10,7 +10,7 @@ import PointForm from '../components/PointForm';
 import type { PageProps } from './types';
 
 export default function Pontuacao({ data }: PageProps) {
-  const [form, setForm] = useState<{ entry?: PointEntry; unit?: string } | null>(null);
+  const [form, setForm] = useState<{ entry?: PointEntry; unit?: string; kind?: 'gain' | 'loss' } | null>(null);
   const [unitFilter, setUnitFilter] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
@@ -72,7 +72,10 @@ export default function Pontuacao({ data }: PageProps) {
           <button className="btn" onClick={exportCSV} disabled={!filtered.length}>
             <Download /> Exportar
           </button>
-          <button className="btn btn-primary" onClick={() => setForm({})}>
+          <button className="btn btn-danger-soft" onClick={() => setForm({ kind: 'loss' })}>
+            <Minus /> Retirar pontos
+          </button>
+          <button className="btn btn-primary" onClick={() => setForm({ kind: 'gain' })}>
             <Plus /> Lançar pontos
           </button>
         </div>
@@ -92,16 +95,30 @@ export default function Pontuacao({ data }: PageProps) {
                 {r.position === 1 && r.total > 0 && <Crown size={14} />}
                 {r.position}º lugar
               </span>
-              <button
-                className="icon-btn"
-                aria-label={`Lançar pontos para ${r.unit.name}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setForm({ unit: r.unit.id });
-                }}
-              >
-                <Plus />
-              </button>
+              <span className="row" style={{ gap: 2 }}>
+                <button
+                  className="icon-btn danger"
+                  aria-label={`Retirar pontos de ${r.unit.name}`}
+                  title="Retirar pontos"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setForm({ unit: r.unit.id, kind: 'loss' });
+                  }}
+                >
+                  <Minus />
+                </button>
+                <button
+                  className="icon-btn"
+                  aria-label={`Lançar pontos para ${r.unit.name}`}
+                  title="Lançar pontos"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setForm({ unit: r.unit.id, kind: 'gain' });
+                  }}
+                >
+                  <Plus />
+                </button>
+              </span>
             </div>
             <div className="rank-name">
               <UnitLogo unit={r.unit} size={44} />
@@ -247,7 +264,7 @@ export default function Pontuacao({ data }: PageProps) {
         </div>
       </div>
 
-      {form && <PointForm data={data} entry={form.entry} presetUnit={form.unit} onClose={() => setForm(null)} />}
+      {form && <PointForm data={data} entry={form.entry} presetUnit={form.unit} presetKind={form.kind} onClose={() => setForm(null)} />}
     </div>
   );
 }

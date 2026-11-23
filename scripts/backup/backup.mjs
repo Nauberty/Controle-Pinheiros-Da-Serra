@@ -11,7 +11,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { createCipheriv, pbkdf2Sync, randomBytes } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
-const COLLECTIONS = ['units', 'members', 'points', 'charges', 'payments', 'expenses', 'settings', 'lixeira', 'acesso'];
+const COLLECTIONS = ['units', 'members', 'points', 'charges', 'payments', 'expenses', 'settings', 'campori', 'lixeira', 'acesso'];
 const ITERATIONS = 310000;
 
 const { FIREBASE_SERVICE_ACCOUNT, BACKUP_PASSWORD } = process.env;

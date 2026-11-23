@@ -232,7 +232,7 @@ function SyncCard({ data }: { data: PageProps['data'] }) {
 
 const ROLE_INFO: Record<AccessRole, { label: string; text: string }> = {
   executiva: { label: 'Diretoria executiva', text: 'Acesso total: pontuação, membros, tesouraria e configurações.' },
-  regular: { label: 'Diretoria regular', text: 'Somente Pontuação das Unidades.' },
+  regular: { label: 'Diretoria regular', text: 'Pontuação das Unidades e Atividades Campori.' },
 };
 
 function AccessCard({ currentEmail }: { currentEmail: string }) {
@@ -475,6 +475,7 @@ const TRASH_LABEL: Record<TrashItem['collection'], string> = {
   payments: 'Pagamento',
   expenses: 'Despesa',
   settings: 'Configuração',
+  campori: 'Atividade Campori',
 };
 
 function describe(t: TrashItem, data: PageProps['data']) {
@@ -494,6 +495,7 @@ function describe(t: TrashItem, data: PageProps['data']) {
     case 'expenses':
       return `${d.description} · ${money(Number(d.amount))}`;
     case 'charges':
+    case 'campori':
       return String(d.title);
     default:
       return String(d.name ?? t.itemId);

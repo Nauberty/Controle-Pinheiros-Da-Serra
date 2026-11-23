@@ -34,6 +34,7 @@ export const EMPTY_DB: DB = {
   payments: [],
   expenses: [],
   settings: [],
+  campori: [],
   lixeira: [],
 };
 

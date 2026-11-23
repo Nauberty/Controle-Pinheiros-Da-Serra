@@ -36,5 +36,5 @@ export const firebaseConfig: FirebaseOptions | null = {
  */
 export const LOGIN_ACCOUNTS = [
   { label: 'Diretoria Executiva', hint: 'Acesso completo, inclusive Tesouraria', email: 'diretoriaexecutiva@pinheirosdaserra.com' },
-  { label: 'Diretoria Regular', hint: 'Somente Pontuação das Unidades', email: 'diretoriaregular@pinheirosdaserra.com' },
+  { label: 'Diretoria Regular', hint: 'Pontuação e Atividades Campori', email: 'diretoriaregular@pinheirosdaserra.com' },
 ];
