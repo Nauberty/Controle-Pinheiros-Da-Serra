@@ -44,6 +44,14 @@ Pau-Brasil, Cedro, Chorão e Ipê, cada uma com seu logo e sua cor.
 
 O bloqueio da Tesouraria vale também no banco de dados (ver `firestore.rules`), não só na tela.
 
+### 🛡️ Segurança dos dados (custo zero)
+- **Lixeira:** tudo o que for excluído pode ser restaurado.
+- **Backup automático semanal**, criptografado, guardado no GitHub por 90 dias.
+- Backup manual a qualquer momento, e cópia automática antes de qualquer restauração.
+- Planos gratuitos sem cartão de crédito, por isso sem risco de cobrança.
+
+👉 Detalhes e como ativar: **[docs/BACKUP.md](docs/BACKUP.md)**
+
 ### ⚙️ Configurações
 - Nomes e cores das unidades, categorias e contagem regressiva para o Campori.
 - Liberação de acesso para a diretoria.

@@ -4,7 +4,8 @@ import { LayoutDashboard, LogOut, Settings as SettingsIcon, Trophy, Users, Walle
 import { connect, disconnect, useData } from './data/store';
 import { createLocalBackend } from './data/localBackend';
 import { cloudEnabled, createCloudBackend, getMyAccess, logout, watchAuth } from './data/cloud';
-import { COLLECTIONS, FINANCE_COLLECTIONS } from './types';
+import { COLLECTIONS, EXECUTIVE_ONLY } from './types';
+import { requestPersistentStorage } from './lib/backup';
 import { ConfirmHost, Toasts } from './components/ui';
 import Login from './components/Login';
 import Dashboard from './pages/Dashboard';
@@ -45,6 +46,7 @@ export default function App() {
 
   useEffect(() => {
     if (!cloudEnabled) {
+      requestPersistentStorage(); // evita que o navegador apague os dados locais
       connect(createLocalBackend());
       return;
     }
@@ -62,7 +64,7 @@ export default function App() {
           setDenied(true);
         } else {
           const role = access.role ?? 'regular';
-          const allowed = role === 'executiva' ? COLLECTIONS : COLLECTIONS.filter((c) => !FINANCE_COLLECTIONS.includes(c));
+          const allowed = role === 'executiva' ? COLLECTIONS : COLLECTIONS.filter((c) => !EXECUTIVE_ONLY.includes(c));
           connect(createCloudBackend(allowed), u.email ?? undefined, role);
         }
       } catch {

@@ -38,6 +38,14 @@ service cloud.firestore {
     match /units/{id}    { allow read: if liberado(); allow write: if executiva(); }
     match /settings/{id} { allow read: if liberado(); allow write: if executiva(); }
 
+    // Lixeira: qualquer membro liberado pode enviar itens que ele mesmo pode excluir;
+    // somente a executiva vê, restaura ou apaga definitivamente
+    match /lixeira/{id} {
+      allow create: if liberado()
+        && (executiva() || request.resource.data.collection in ['members', 'points']);
+      allow read, update, delete: if executiva();
+    }
+
     // Tesouraria: somente diretoria executiva
     match /charges/{id}  { allow read, write: if executiva(); }
     match /payments/{id} { allow read, write: if executiva(); }

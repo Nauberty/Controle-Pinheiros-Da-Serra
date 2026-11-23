@@ -4,6 +4,8 @@ Com o modo online, **toda a diretoria acessa os mesmos dados**, de qualquer celu
 O Firebase é um serviço do Google, e o plano gratuito (Spark) é mais que suficiente para o clube.
 
 > ⏱️ Leva cerca de 15 minutos. Você só precisa de uma conta Google.
+>
+> 💸 **Custo zero:** use sempre o plano **Spark** (gratuito). Ele não pede cartão de crédito. **Nunca** clique em "Upgrade" nem escolha o plano **Blaze**: nada neste sistema precisa dele.
 
 ---
 
@@ -82,6 +84,12 @@ export const firebaseConfig: FirebaseOptions | null = {
 
 1. **Antes** do passo 6, no navegador onde você lançou os dados, abra **Configurações → Baixar backup**.
 2. Depois de fazer login no modo online: **Configurações → Restaurar backup** e escolha o arquivo.
+
+---
+
+## 8. Ativar o backup automático semanal
+
+Siga o passo a passo em **[BACKUP.md](BACKUP.md#ativar-o-backup-automático-semanal)** (cerca de 5 minutos).
 
 ---
 

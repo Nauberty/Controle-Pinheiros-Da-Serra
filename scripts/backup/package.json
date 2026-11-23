@@ -1,0 +1,9 @@
+{
+  "name": "backup-firestore",
+  "private": true,
+  "type": "module",
+  "description": "Backup automático (criptografado) do banco do Firebase. Usado pelo GitHub Actions.",
+  "dependencies": {
+    "firebase-admin": "14.5.0"
+  }
+}

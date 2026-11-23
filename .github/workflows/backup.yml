@@ -1,0 +1,53 @@
+name: Backup semanal dos dados
+
+# Toda segunda-feira às 06:17 (horário de Brasília) e quando executado manualmente.
+on:
+  schedule:
+    - cron: '17 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar configuração
+        id: check
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PW: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          if [ -z "$SA" ] || [ -z "$PW" ]; then
+            echo "::notice::Backup automático ainda não configurado (veja docs/BACKUP.md). Nada a fazer."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+
+      - name: Gerar backup criptografado
+        if: steps.check.outputs.ready == 'true'
+        working-directory: scripts/backup
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          npm install --no-audit --no-fund
+          node backup.mjs
+
+      - name: Guardar backup (90 dias)
+        if: steps.check.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_number }}
+          path: scripts/backup/out/*.json
+          retention-days: 90
+          if-no-files-found: error

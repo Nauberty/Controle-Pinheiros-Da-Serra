@@ -101,6 +101,16 @@ export interface Access {
   addedAt: number;
 }
 
+/** Item excluído, guardado para poder ser restaurado */
+export interface TrashItem {
+  id: string;
+  collection: Exclude<CollectionName, 'lixeira'>;
+  itemId: string;
+  data: Record<string, unknown>;
+  deletedAt: number;
+  deletedBy?: string;
+}
+
 export interface DB {
   units: Unit[];
   members: Member[];
@@ -109,9 +119,12 @@ export interface DB {
   payments: Payment[];
   expenses: Expense[];
   settings: Settings[];
+  lixeira: TrashItem[];
 }
 
 export type CollectionName = keyof DB;
-export const COLLECTIONS: CollectionName[] = ['units', 'members', 'points', 'charges', 'payments', 'expenses', 'settings'];
-/** Coleções exclusivas da diretoria executiva */
+export const COLLECTIONS: CollectionName[] = ['units', 'members', 'points', 'charges', 'payments', 'expenses', 'settings', 'lixeira'];
+/** Coleções financeiras */
 export const FINANCE_COLLECTIONS: CollectionName[] = ['charges', 'payments', 'expenses'];
+/** Coleções que a diretoria regular não pode ler */
+export const EXECUTIVE_ONLY: CollectionName[] = [...FINANCE_COLLECTIONS, 'lixeira'];

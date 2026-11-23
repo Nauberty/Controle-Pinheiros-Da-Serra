@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react';
-import { COLLECTIONS, type AccessRole, type CollectionName, type DB } from '../types';
+import { COLLECTIONS, type AccessRole, type CollectionName, type DB, type TrashItem } from '../types';
 import type { Backend, Item } from './backend';
 import { EMPTY_DB, mergeSettings, mergeUnits } from './defaults';
 
@@ -98,8 +98,39 @@ export async function save<K extends CollectionName>(name: K, item: DB[K][number
   await need().put(name, withAuthor as unknown as Item);
 }
 
+/**
+ * Exclui um registro, guardando uma cópia na Lixeira para poder ser restaurado.
+ * (Nada é apagado de verdade sem passar pela Lixeira.)
+ */
 export async function removeItem(name: CollectionName, id: string) {
-  await need().remove(name, id);
+  const b = need();
+  if (name !== 'lixeira') {
+    const original = (state.db[name] as unknown as Item[]).find((x) => x.id === id);
+    if (original) {
+      const { id: itemId, ...data } = original;
+      await b.put('lixeira', {
+        id: `${name}-${itemId}-${Date.now()}`,
+        collection: name,
+        itemId,
+        data,
+        deletedAt: Date.now(),
+        ...(currentUser ? { deletedBy: currentUser } : {}),
+      });
+    }
+  }
+  await b.remove(name, id);
+}
+
+/** Devolve um item da Lixeira ao lugar de origem. */
+export async function restoreFromTrash(t: TrashItem) {
+  const b = need();
+  await b.put(t.collection, { ...t.data, id: t.itemId });
+  await b.remove('lixeira', t.id);
+}
+
+/** Apaga definitivamente (somente a partir da Lixeira). */
+export async function purgeTrash(id: string) {
+  await need().remove('lixeira', id);
 }
 
 export async function replaceAll(db: DB) {

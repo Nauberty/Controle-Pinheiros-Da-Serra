@@ -4,6 +4,8 @@ import {
   ArrowRight,
   ArrowUpCircle,
   CalendarClock,
+  Download,
+  ShieldAlert,
   Crown,
   HandCoins,
   Plus,
@@ -17,6 +19,8 @@ import { cashSummary, chargeSummary, methodLabel } from '../lib/finance';
 import { dateShort, money, signed } from '../lib/format';
 import { Bar, Empty, Stat, UnitLogo } from '../components/ui';
 import PointForm from '../components/PointForm';
+import { daysSinceBackup } from '../lib/backup';
+import { downloadBackup } from './Configuracoes';
 import { PaymentForm } from '../components/FinanceForms';
 import type { PageProps } from './types';
 
@@ -51,6 +55,10 @@ export default function Dashboard({ data }: PageProps) {
     .slice(0, 8);
 
   const { eventName, eventDate } = data.settings;
+  const [, setTick] = useState(0);
+  const backupDays = daysSinceBackup();
+  const hasData = data.members.length + data.points.length + data.payments.length > 0;
+  const backupDue = data.mode === 'local' && data.isExecutive && hasData && (backupDays === null || backupDays >= 7);
   const days = eventDate ? daysUntil(eventDate) : null;
 
   return (
@@ -68,6 +76,26 @@ export default function Dashboard({ data }: PageProps) {
           </div>
         )}
       </div>
+
+      {backupDue && (
+        <div className="notice warn" style={{ marginBottom: 22, alignItems: 'center' }}>
+          <ShieldAlert />
+          <div className="grow">
+            <b>Faça um backup.</b>{' '}
+            {backupDays === null ? 'Ainda não há nenhum backup neste aparelho.' : `O último backup foi há ${backupDays} dias.`} No modo local, os dados
+            ficam só neste navegador.
+          </div>
+          <button
+            className="btn btn-sm btn-primary"
+            onClick={() => {
+              downloadBackup();
+              setTick((t) => t + 1);
+            }}
+          >
+            <Download /> Baixar backup agora
+          </button>
+        </div>
+      )}
 
       {data.isExecutive && (
         <div className="grid grid-4" style={{ marginBottom: 22 }}>

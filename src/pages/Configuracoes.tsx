@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { CloudOff, Cloud, Download, KeyRound, Plus, Save, Shield, Trash2, Upload, X } from 'lucide-react';
-import type { Access, AccessRole, DB, Settings, Unit } from '../types';
+import { AlertTriangle, CloudOff, Cloud, Download, KeyRound, Plus, RotateCcw, Save, Shield, ShieldCheck, Trash2, Upload, X } from 'lucide-react';
+import type { Access, AccessRole, DB, Settings, TrashItem, Unit } from '../types';
 import { COLLECTIONS } from '../types';
-import { replaceAll, save, snapshot } from '../data/store';
+import { purgeTrash, replaceAll, restoreFromTrash, save, snapshot } from '../data/store';
+import { backupData, daysSinceBackup, decryptBackup, isEncrypted, lastBackupAt, markBackupDone, type EncryptedBackup } from '../lib/backup';
 import { cloudEnabled, grantAccess, revokeAccess, setAccessRole, watchAccess } from '../data/cloud';
 import { downloadFile } from '../lib/download';
-import { today, uid } from '../lib/format';
-import { Field, confirmDialog, run, toast } from '../components/ui';
+import { dateBR, money, signed, uid } from '../lib/format';
+import { Field, Modal, confirmDialog, run, toast } from '../components/ui';
 import type { PageProps } from './types';
 
 export default function Configuracoes({ data, user }: PageProps) {
@@ -15,7 +16,7 @@ export default function Configuracoes({ data, user }: PageProps) {
       <div className="page-head">
         <div>
           <h1 className="page-title">Configurações</h1>
-          <p className="page-sub">Unidades, categorias, acesso da diretoria e backup.</p>
+          <p className="page-sub">Unidades, categorias, acesso da diretoria, backup e lixeira.</p>
         </div>
       </div>
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
@@ -29,6 +30,7 @@ export default function Configuracoes({ data, user }: PageProps) {
           <CategoriesCard data={data} kind="expenseCategories" title="Categorias de despesas" />
           {cloudEnabled && user && <AccessCard currentEmail={user.email ?? ''} />}
           <BackupCard data={data} />
+          <TrashCard data={data} />
         </div>
       </div>
     </div>
@@ -331,43 +333,87 @@ function AccessCard({ currentEmail }: { currentEmail: string }) {
   );
 }
 
+export function downloadBackup(prefix = 'backup') {
+  const payload = { app: 'controle-pinheiros-da-serra', version: 1, exportedAt: new Date().toISOString(), data: snapshot() };
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+  downloadFile(`${prefix}-pinheiros-da-serra-${stamp}.json`, JSON.stringify(payload, null, 2), 'application/json');
+  markBackupDone();
+}
+
 function BackupCard({ data }: { data: PageProps['data'] }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [encrypted, setEncrypted] = useState<EncryptedBackup | null>(null);
+  const [password, setPassword] = useState('');
+  const days = daysSinceBackup();
 
-  const exportJSON = () => {
-    const payload = { app: 'controle-pinheiros-da-serra', version: 1, exportedAt: new Date().toISOString(), data: snapshot() };
-    downloadFile(`backup-pinheiros-da-serra-${today()}.json`, JSON.stringify(payload, null, 2), 'application/json');
-    toast('Backup baixado');
+  const restore = async (db: DB) => {
+    if (!COLLECTIONS.every((c) => Array.isArray(db[c] ?? []))) throw new Error('arquivo inválido');
+    const counts = `${db.members?.length ?? 0} membros, ${db.points?.length ?? 0} lançamentos de pontos, ${db.payments?.length ?? 0} pagamentos`;
+    const ok = await confirmDialog(
+      'Restaurar backup?',
+      `O backup contém ${counts}. Os dados atuais serão substituídos por ele. Por segurança, uma cópia dos dados atuais será baixada antes.`,
+      { ok: 'Substituir dados' },
+    );
+    if (!ok) return;
+    downloadBackup('antes-de-restaurar'); // cópia de segurança automática
+    await run(() => replaceAll({ ...db, lixeira: db.lixeira ?? [] }), 'Backup restaurado');
   };
 
   const importJSON = async (file: File) => {
     try {
       const parsed = JSON.parse(await file.text());
-      const db: DB = parsed.data ?? parsed;
-      if (!COLLECTIONS.every((c) => Array.isArray(db[c] ?? []))) throw new Error('arquivo inválido');
-      const counts = `${db.members?.length ?? 0} membros, ${db.points?.length ?? 0} lançamentos de pontos, ${db.payments?.length ?? 0} pagamentos`;
-      const ok = await confirmDialog(
-        'Restaurar backup?',
-        `O backup contém ${counts}. TODOS os dados atuais serão substituídos por ele. Recomendamos baixar um backup atual antes.`,
-        { ok: 'Substituir dados' },
-      );
-      if (ok) await run(() => replaceAll(db), 'Backup restaurado');
+      if (isEncrypted(parsed)) {
+        setPassword('');
+        setEncrypted(parsed);
+        return;
+      }
+      await restore(backupData(parsed));
     } catch (e) {
       toast('Não foi possível ler o arquivo: ' + (e as Error).message, true);
+    }
+  };
+
+  const unlock = async () => {
+    if (!encrypted) return;
+    try {
+      const parsed = await decryptBackup(encrypted, password);
+      setEncrypted(null);
+      await restore(backupData(parsed));
+    } catch (e) {
+      toast((e as Error).message, true);
     }
   };
 
   return (
     <div className="card">
       <div className="card-head">
-        <div className="card-title">Backup</div>
+        <div className="card-title">
+          <ShieldCheck /> Backup
+        </div>
       </div>
       <div className="card-body stack" style={{ gap: 12 }}>
+        {data.mode === 'local' && (days === null || days >= 7) && (
+          <div className="notice warn">
+            <AlertTriangle />
+            <div>
+              {days === null ? 'Nenhum backup foi feito neste aparelho ainda.' : `Último backup feito há ${days} dias.`} No modo local, o
+              backup é a única garantia contra perda de dados.
+            </div>
+          </div>
+        )}
         <p className="small muted">
-          Baixe uma cópia de segurança de todos os dados. O arquivo também serve para levar os dados do modo local para o modo online.
+          Baixe uma cópia de segurança de todos os dados e guarde no Google Drive ou no e-mail. O mesmo arquivo serve para levar os
+          dados do modo local para o modo online. Também é possível restaurar os backups automáticos semanais (criptografados) do
+          GitHub.
         </p>
         <div className="row wrap">
-          <button className="btn" onClick={exportJSON}>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              downloadBackup();
+              toast('Backup baixado');
+            }}
+          >
             <Download /> Baixar backup
           </button>
           <button className="btn" onClick={() => fileRef.current?.click()}>
@@ -388,7 +434,128 @@ function BackupCard({ data }: { data: PageProps['data'] }) {
         <p className="tiny">
           {data.members.length} membros · {data.points.length} lançamentos de pontos · {data.payments.length} pagamentos ·{' '}
           {data.expenses.length} despesas
+          {lastBackupAt() && ` · último backup neste aparelho: ${new Date(lastBackupAt()!).toLocaleDateString('pt-BR')}`}
         </p>
+      </div>
+      {encrypted && (
+        <Modal
+          title="Backup protegido por senha"
+          onClose={() => setEncrypted(null)}
+          footer={
+            <>
+              <button className="btn" onClick={() => setEncrypted(null)}>
+                Cancelar
+              </button>
+              <button className="btn btn-primary" disabled={!password} onClick={unlock}>
+                Abrir backup
+              </button>
+            </>
+          }
+        >
+          <div className="stack" style={{ gap: 12 }}>
+            <p className="small muted">
+              Este é um backup automático de {new Date(encrypted.exportedAt).toLocaleString('pt-BR')}. Digite a senha de backup
+              (BACKUP_PASSWORD) cadastrada no GitHub.
+            </p>
+            <Field label="Senha do backup">
+              <input
+                className="input"
+                type="password"
+                autoFocus
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && unlock()}
+              />
+            </Field>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+const TRASH_LABEL: Record<TrashItem['collection'], string> = {
+  units: 'Unidade',
+  members: 'Membro',
+  points: 'Pontuação',
+  charges: 'Cobrança',
+  payments: 'Pagamento',
+  expenses: 'Despesa',
+  settings: 'Configuração',
+};
+
+function describe(t: TrashItem, data: PageProps['data']) {
+  const d = t.data as Record<string, unknown>;
+  const unitName = (id: unknown) => data.units.find((u) => u.id === id)?.name ?? 'unidade';
+  const memberName = (id: unknown) =>
+    data.members.find((m) => m.id === id)?.name ??
+    (data.lixeira.find((x) => x.collection === 'members' && x.itemId === id)?.data.name as string | undefined) ??
+    '—';
+  switch (t.collection) {
+    case 'points':
+      return `${signed(Number(d.points))} pts · ${unitName(d.unitId)} · ${d.category}${d.description ? ` · ${d.description}` : ''} (${dateBR(String(d.date))})`;
+    case 'members':
+      return String(d.name);
+    case 'payments':
+      return `${money(Number(d.amount))} · ${memberName(d.memberId)} (${dateBR(String(d.date))})`;
+    case 'expenses':
+      return `${d.description} · ${money(Number(d.amount))}`;
+    case 'charges':
+      return String(d.title);
+    default:
+      return String(d.name ?? t.itemId);
+  }
+}
+
+function TrashCard({ data }: { data: PageProps['data'] }) {
+  const [showAll, setShowAll] = useState(false);
+  const list = [...data.lixeira].sort((a, b) => b.deletedAt - a.deletedAt);
+  const visible = showAll ? list : list.slice(0, 8);
+
+  const purge = async (t: TrashItem) => {
+    if (await confirmDialog('Apagar definitivamente?', `${TRASH_LABEL[t.collection]}: ${describe(t, data)}. Não será mais possível recuperar.`, { ok: 'Apagar' }))
+      run(() => purgeTrash(t.id), 'Apagado definitivamente');
+  };
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Trash2 /> Lixeira
+        </div>
+        <span className="tiny">{list.length} item(ns)</span>
+      </div>
+      <div className="card-body">
+        {list.length === 0 ? (
+          <p className="small muted">Tudo o que for excluído fica guardado aqui e pode ser restaurado.</p>
+        ) : (
+          <div className="list">
+            {visible.map((t) => (
+              <div key={t.id} className="list-item" style={{ padding: '8px 0' }}>
+                <div className="grow" style={{ minWidth: 0 }}>
+                  <div className="small">
+                    <span className="badge neutral">{TRASH_LABEL[t.collection]}</span> {describe(t, data)}
+                  </div>
+                  <div className="tiny">
+                    Excluído em {new Date(t.deletedAt).toLocaleString('pt-BR')}
+                    {t.deletedBy && ` por ${t.deletedBy}`}
+                  </div>
+                </div>
+                <button className="btn btn-sm" onClick={() => run(() => restoreFromTrash(t), 'Restaurado')}>
+                  <RotateCcw /> Restaurar
+                </button>
+                <button className="icon-btn danger" aria-label="Apagar definitivamente" onClick={() => purge(t)}>
+                  <X />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {list.length > 8 && (
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowAll(!showAll)}>
+            {showAll ? 'Mostrar menos' : `Ver todos (${list.length})`}
+          </button>
+        )}
       </div>
     </div>
   );
