@@ -67,7 +67,7 @@ export default function Dashboard({ data }: PageProps) {
         <img src="./logo.png" alt="" />
         <div>
           <h1>{data.settings.clubName}</h1>
-          <p>Clube de Desbravadores · Painel da diretoria</p>
+          <p>Painel de Controle</p>
         </div>
         {days !== null && days >= 0 && (
           <div className="countdown">

@@ -119,7 +119,7 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
           <img src="./logo.png" alt="Logo Pinheiros da Serra" />
           <div>
             <div className="brand-name">{data.settings.clubName}</div>
-            <div className="brand-sub">Clube de Desbravadores</div>
+            <div className="brand-sub">Painel de Controle</div>
           </div>
         </div>
         <nav className="nav">
