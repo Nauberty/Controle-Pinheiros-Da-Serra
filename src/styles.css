@@ -421,3 +421,11 @@ html:has(.splash), html:has(.splash) body { background: var(--forest-950); }
   .main { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
   .toasts { bottom: calc(90px + env(safe-area-inset-bottom)); }
 }
+
+/* Fundo verde atrás de tudo: o iOS usa essa cor no efeito de desfoque do topo
+   (barra de status) e ao puxar a tela além do limite. O conteúdo continua claro. */
+html, body { background: var(--forest-900); }
+.app { background: var(--bg); min-height: 100vh; min-height: 100dvh; }
+@media (max-width: 860px) {
+  .mobile-head { background: var(--forest-900); }
+}
