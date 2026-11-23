@@ -21,3 +21,13 @@ import type { FirebaseOptions } from 'firebase/app';
  * };
  */
 export const firebaseConfig: FirebaseOptions | null = null;
+
+/**
+ * Logins compartilhados mostrados como botões na tela de entrada.
+ * Os e-mails precisam ser iguais aos usuários criados em Authentication
+ * e aos documentos da coleção "acesso" no Firestore.
+ */
+export const LOGIN_ACCOUNTS = [
+  { label: 'Diretoria Executiva', hint: 'Acesso completo, inclusive Tesouraria', email: 'diretoriaexecutiva@pinheirosdaserra.com' },
+  { label: 'Diretoria Regular', hint: 'Pontuação e Controle de Membros', email: 'diretoriaregular@pinheirosdaserra.com' },
+];

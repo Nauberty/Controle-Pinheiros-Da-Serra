@@ -362,3 +362,10 @@ td.actions { width: 1%; white-space: nowrap; text-align: right; }
   .unit-count { flex-direction: column; align-items: flex-start; gap: 6px; }
 }
 .modal .tabs { flex-wrap: wrap; }
+.login-options { display: grid; gap: 10px; }
+.login-option { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: #fff; cursor: pointer; text-align: left; transition: border-color .15s, background .15s; }
+.login-option svg { width: 22px; height: 22px; color: var(--text-3); flex: none; }
+.login-option span { display: flex; flex-direction: column; gap: 2px; }
+.login-option small { color: var(--text-3); font-size: 12px; }
+.login-option.on { border-color: var(--forest-600); background: var(--forest-50); }
+.login-option.on svg { color: var(--forest-600); }
