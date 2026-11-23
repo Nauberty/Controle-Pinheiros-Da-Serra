@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Regras de segurança do banco de dados (Cloud Firestore).
+// Somente quem está logado E tem o e-mail cadastrado na coleção "acesso" pode ler ou alterar os dados.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autorizado() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && exists(/databases/$(database)/documents/acesso/$(request.auth.token.email.lower()));
+    }
+
+    match /{colecao}/{documento} {
+      allow read, write: if autorizado();
+    }
+  }
+}
