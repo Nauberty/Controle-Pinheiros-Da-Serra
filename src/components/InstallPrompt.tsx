@@ -42,7 +42,6 @@ function recentlyDismissed() {
 export default function InstallPrompt() {
   const [, force] = useState(0);
   const [open, setOpen] = useState(false);
-  const [guide, setGuide] = useState(false);
 
   useEffect(() => {
     const l = () => force((n) => n + 1);
@@ -58,25 +57,6 @@ export default function InstallPrompt() {
     return () => void listeners.delete(l);
   }, []);
 
-  if (guide && !isStandalone())
-    return (
-      <div className="install-guide" onClick={() => setGuide(false)} role="status">
-        <div className="install-guide-box">
-          {/CriOS/i.test(navigator.userAgent) ? (
-            <>
-              Toque em <b>Compartilhar</b> <Share size={15} /> na barra de endereço
-            </>
-          ) : (
-            <>
-              Toque em <b>⋯</b> e depois em <b>Compartilhar</b> <Share size={15} />
-            </>
-          )}
-          <br />
-          depois em <b>Adicionar à Tela de Início</b>
-        </div>
-        <div className="install-guide-arrow">↓</div>
-      </div>
-    );
   if (!open || isStandalone()) return null;
   const ios = isIOS();
   const iosChrome = ios && /CriOS/i.test(navigator.userAgent);
@@ -115,15 +95,8 @@ export default function InstallPrompt() {
             </button>
           )}
           {ios && (
-            <button
-              className="btn btn-primary"
-              onClick={() => {
-                setOpen(false);
-                setGuide(true);
-                setTimeout(() => setGuide(false), 12000);
-              }}
-            >
-              Mostrar onde tocar
+            <button className="btn btn-primary" onClick={later}>
+              Entendi
             </button>
           )}
         </>
