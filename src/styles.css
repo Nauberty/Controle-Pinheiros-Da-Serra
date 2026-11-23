@@ -506,3 +506,5 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: man
 .camp-section .camp-list { border-top: 1px solid var(--border); }
 .camp-empty { border-top: 1px solid var(--border); padding: 18px 16px; }
 .password-row { border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+.copyright { font-size: 10.5px; color: #7f9486; line-height: 1.4; }
+.copyright-login { font-size: 11px; color: var(--text-3); margin-top: 18px; }

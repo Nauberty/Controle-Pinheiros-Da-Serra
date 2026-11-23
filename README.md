@@ -71,7 +71,7 @@ Funciona no computador e no celular. No celular dá para "Adicionar à tela inic
 
 | Parte | Onde fica | Custo |
 |---|---|---|
-| Site (as telas) | GitHub Pages | Grátis |
+| Site (as telas) | Vercel (plano Hobby) | Grátis |
 | Dados compartilhados | Firebase (Google) | Grátis no plano Spark |
 
 ### Modos de funcionamento
@@ -88,8 +88,7 @@ Funciona no computador e no celular. No celular dá para "Adicionar à tela inic
 ### 👉 https://pinheirosdaserra.vercel.app
 
 - Hospedado na **Vercel** (plano Hobby, gratuito). Cada alteração enviada à branch `main` é publicada sozinha.
-- Endereço reserva: https://nauberty.github.io/Controle-Pinheiros-Da-Serra/ (GitHub Pages, publicado pelo workflow `deploy.yml`).
-- Os dois endereços precisam estar em **Firebase → Authentication → Configurações → Domínios autorizados**.
+- O endereço precisa estar em **Firebase → Authentication → Configurações → Domínios autorizados**.
 
 ---
 
@@ -114,3 +113,10 @@ firestore.rules   regras de segurança do banco
 ```
 
 Os valores em dinheiro são guardados em centavos, para evitar erros de arredondamento.
+
+---
+
+## Licença
+
+© Clube de Desbravadores Pinheiros da Serra. **Todos os direitos reservados.**
+Software proprietário de uso exclusivo da diretoria do clube. É proibido copiar, modificar, redistribuir ou reutilizar este código sem autorização por escrito. Veja o arquivo [LICENSE](LICENSE).

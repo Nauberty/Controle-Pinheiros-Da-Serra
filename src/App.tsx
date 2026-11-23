@@ -140,6 +140,7 @@ function Shell({ route: wanted, user }: { route: Route; user: User | null }) {
           ))}
         </nav>
         <div className="sidebar-foot">
+          <span className="copyright">© {new Date().getFullYear()} Pinheiros da Serra · Todos os direitos reservados</span>
           <span className="sync-pill">
             <span className={`sync-dot ${data.mode === 'cloud' ? 'on' : ''}`} />
             {data.mode === 'cloud' ? 'Sincronizado online' : 'Modo local (este navegador)'}

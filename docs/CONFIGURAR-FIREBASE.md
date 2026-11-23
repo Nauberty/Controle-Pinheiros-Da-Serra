@@ -20,7 +20,7 @@ O Firebase é um serviço do Google, e o plano gratuito (Spark) é mais que sufi
 
 1. No menu à esquerda: **Criação → Authentication** → **Vamos começar**.
 2. Na aba **Método de login**, escolha **E-mail/senha**, ative a primeira opção e clique em **Salvar**.
-3. Na aba **Configurações → Domínios autorizados**, clique em **Adicionar domínio** e coloque `pinheirosdaserra.vercel.app` (e também `nauberty.github.io`, o endereço reserva).
+3. Na aba **Configurações → Domínios autorizados**, clique em **Adicionar domínio** e coloque `pinheirosdaserra.vercel.app`.
 
 ## 3. Criar o banco de dados
 

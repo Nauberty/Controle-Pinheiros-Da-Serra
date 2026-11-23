@@ -68,6 +68,7 @@ export default function Login() {
             <LogIn /> {busy ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
+        <p className="copyright-login">© {new Date().getFullYear()} Clube de Desbravadores Pinheiros da Serra · Uso exclusivo da diretoria</p>
       </div>
     </div>
   );
