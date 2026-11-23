@@ -468,3 +468,30 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: man
   .rank-card .icon-btn { width: 30px; height: 30px; }
   .rank-card .rank-pos { font-size: 12px; }
 }
+.avatar-photo { object-fit: cover; display: block; flex: none; border: 1px solid var(--border); }
+
+/* ---------- ficha do membro ---------- */
+.photo-picker { position: relative; width: 84px; height: 84px; border-radius: 22px; border: 2px dashed var(--border-strong); background: var(--surface-2); cursor: pointer; padding: 0; flex: none; overflow: visible; color: var(--text-3); }
+.photo-picker img { width: 100%; height: 100%; object-fit: cover; border-radius: 20px; display: block; }
+.photo-picker > span { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 4px; font-size: 12px; font-weight: 600; }
+.photo-picker > span svg { width: 24px; height: 24px; }
+.photo-picker i { position: absolute; right: -6px; bottom: -6px; width: 28px; height: 28px; border-radius: 50%; background: var(--forest-700); color: #fff; display: grid; place-items: center; border: 2px solid #fff; }
+.photo-picker:has(img) { border-style: solid; border-color: var(--border); }
+.profile-side { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+.link-btn.danger-link { color: var(--danger); margin-top: 6px; }
+.profile-side .link-btn { color: var(--text-2); font-size: 13px; }
+.form-section { font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--forest-700); border-bottom: 1px solid var(--border); padding: 10px 0 6px; margin-top: 4px; }
+.field-error { color: var(--danger); font-size: 12.5px; font-weight: 500; }
+.input.invalid { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.12); }
+.vaccine-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.vaccine { display: flex; gap: 10px; align-items: center; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; font-size: 13.5px; background: #fff; }
+.vaccine input { width: 17px; height: 17px; accent-color: var(--forest-600); flex: none; }
+.vaccine.on { border-color: var(--forest-600); background: var(--forest-50); }
+.tab .count.down { background: var(--danger-bg); border-color: #f2c4be; color: var(--danger); }
+@media (max-width: 560px) {
+  .vaccine-grid { grid-template-columns: minmax(0, 1fr); }
+  .profile-side { align-items: flex-start; text-align: left; width: 100%; }
+}
+.unit-count .unit-add { flex: none; color: var(--forest-700); background: var(--forest-50); }
+.unit-count .unit-add:hover { background: var(--forest-100); }
+.modal .tabs .tab { padding: 10px 11px; font-size: 14px; }

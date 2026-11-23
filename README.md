@@ -27,11 +27,12 @@
 - Entradas, saídas, saldo em caixa, valor a receber e total recebido por forma de pagamento.
 - Exportação para planilha (CSV que abre no Excel).
 
-### 👥 Controle de Membros
-- **Ficha completa** de cada desbravador, com os mesmos campos do SGC: dados pessoais, contato e endereço, responsáveis, igreja, saúde (tipo sanguíneo, alergias, medicamentos), classe atual, classes concluídas, especialidades e investiduras.
-- **Importação da planilha exportada do SGC** (CSV), com as colunas reconhecidas automaticamente.
-- **Pendências do SGC**: toda alteração feita aqui fica registrada (campo, valor anterior, novo valor, quem alterou e quando) até alguém lançar no SGC e clicar em *Marcar como atualizado no SGC*.
-- Percentual de preenchimento de cada ficha, idade e valor em aberto na tesouraria.
+### 👥 Controle de Membros (diretoria executiva)
+- **Cadastro manual por unidade** (botão ao lado de cada unidade): nome completo e idade obrigatórios, foto, documentos (CPF, RG/certidão), contato, responsável, tipo sanguíneo, condições de saúde, alergias, medicamentos e **vacinação** (lista do Calendário Nacional e situação da caderneta).
+- Ficha completa com abas: Dados cadastrais · Saúde e vacinação · Endereço e família · Igreja e clube · **Financeiro** · SGC.
+- **Financeiro do membro:** cobranças, valores pagos, em aberto e histórico de pagamentos, com registro de pagamento direto pela ficha. A ficha também abre pela Tesouraria → **Por membro**.
+- Importação da planilha do SGC (CSV) e **pendências do SGC**: toda alteração fica registrada até ser lançada lá.
+- A foto é reduzida (~20 KB) e guardada na própria ficha, sem custo de armazenamento.
 
 ### ⛺ Atividades Campori
 - Lista de tarefas da preparação para o Campori, com categoria, responsável, unidade e prazo.

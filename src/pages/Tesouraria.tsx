@@ -12,18 +12,21 @@ import {
   Receipt,
   Search,
   Trash2,
+  UserRound,
   Wallet,
 } from 'lucide-react';
-import type { Charge, Expense, Payment } from '../types';
+import type { Charge, Expense, Member, Payment } from '../types';
 import { removeItem, save } from '../data/store';
-import { cashSummary, chargeSummary, methodLabel, type Status } from '../lib/finance';
+import { cashSummary, chargeBalances, chargeSummary, methodLabel, type Status } from '../lib/finance';
+import { age } from '../lib/memberFields';
 import { dateBR, money, monthKey, monthLabel, normalize } from '../lib/format';
 import { csvMoney, downloadCSV } from '../lib/download';
-import { Bar, Empty, Modal, Stat, StatusBadge, UnitChip, confirmDialog, run } from '../components/ui';
+import { Bar, Empty, MemberAvatar, Modal, Stat, StatusBadge, UnitChip, confirmDialog, run } from '../components/ui';
+import MemberProfile from '../components/MemberProfile';
 import { ChargeForm, ExpenseForm, PaymentForm } from '../components/FinanceForms';
 import type { PageProps } from './types';
 
-type Tab = 'cobrancas' | 'pagamentos' | 'despesas';
+type Tab = 'cobrancas' | 'membros' | 'pagamentos' | 'despesas';
 
 export default function Tesouraria({ data }: PageProps) {
   const [tab, setTab] = useState<Tab>('cobrancas');
@@ -31,6 +34,7 @@ export default function Tesouraria({ data }: PageProps) {
   const [payForm, setPayForm] = useState<{ payment?: Payment; preset?: { memberId?: string; chargeId?: string } } | null>(null);
   const [expForm, setExpForm] = useState<{ expense?: Expense } | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Member | null>(null);
 
   const cash = useMemo(
     () => cashSummary(data.payments, data.expenses, data.charges, data.members),
@@ -65,6 +69,9 @@ export default function Tesouraria({ data }: PageProps) {
         <button className={`tab ${tab === 'cobrancas' ? 'on' : ''}`} onClick={() => setTab('cobrancas')}>
           <Receipt /> Cobranças <span className="count">{data.charges.filter((c) => !c.archived).length}</span>
         </button>
+        <button className={`tab ${tab === 'membros' ? 'on' : ''}`} onClick={() => setTab('membros')}>
+          <UserRound /> Por membro
+        </button>
         <button className={`tab ${tab === 'pagamentos' ? 'on' : ''}`} onClick={() => setTab('pagamentos')}>
           <HandCoins /> Pagamentos <span className="count">{data.payments.length}</span>
         </button>
@@ -77,6 +84,7 @@ export default function Tesouraria({ data }: PageProps) {
       {tab === 'pagamentos' && (
         <Payments data={data} onEdit={(p) => setPayForm({ payment: p })} byMethod={cash.byMethod} />
       )}
+      {tab === 'membros' && <ByMember data={data} onOpen={setProfile} />}
       {tab === 'despesas' && <Expenses data={data} onNew={() => setExpForm({})} onEdit={(e) => setExpForm({ expense: e })} />}
 
       {detail && (
@@ -99,6 +107,7 @@ export default function Tesouraria({ data }: PageProps) {
           }}
         />
       )}
+      {profile && <MemberProfile data={data} member={profile} initialTab="financeiro" onClose={() => setProfile(null)} />}
       {payForm && <PaymentForm data={data} payment={payForm.payment} preset={payForm.preset} onClose={() => setPayForm(null)} />}
       {expForm && <ExpenseForm data={data} expense={expForm.expense} onClose={() => setExpForm(null)} />}
     </div>
@@ -327,8 +336,13 @@ function ChargeDetail(props: {
                 <Fragment key={r.member.id}>
                   <tr onClick={() => setOpen(open === r.member.id ? null : r.member.id)} style={{ cursor: 'pointer' }}>
                     <td>
-                      <b style={{ fontWeight: 600 }}>{r.member.name}</b>
-                      {r.payments.length > 0 && <div className="tiny">{r.payments.length === 1 ? "1 pagamento" : `${r.payments.length} pagamentos`} · ver</div>}
+                      <div className="row">
+                        <MemberAvatar member={r.member} unit={r.member.unitId ? unitById.get(r.member.unitId) : undefined} size={32} />
+                        <div>
+                          <b style={{ fontWeight: 600 }}>{r.member.name}</b>
+                          {r.payments.length > 0 && <div className="tiny">{r.payments.length === 1 ? '1 pagamento' : `${r.payments.length} pagamentos`} · ver</div>}
+                        </div>
+                      </div>
                     </td>
                     <td className="hide-sm">
                       <UnitChip unit={r.member.unitId ? unitById.get(r.member.unitId) : undefined} />
@@ -679,6 +693,134 @@ function Expenses({ data, onNew, onEdit }: { data: PageProps['data']; onNew: () 
             <span>{list.length} despesa(s)</span>
             <span>
               Total: <b className="down">{money(total)}</b>
+            </span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------- Situação por membro ----------------
+function ByMember({ data, onOpen }: { data: PageProps['data']; onOpen: (m: Member) => void }) {
+  const [filter, setFilter] = useState<'pendentes' | 'em-dia' | 'todos'>('pendentes');
+  const [q, setQ] = useState('');
+  const unitById = new Map(data.units.map((u) => [u.id, u]));
+
+  const rows = useMemo(() => {
+    const map = new Map<string, { member: Member; due: number; paid: number; remaining: number; charges: number }>();
+    for (const m of data.members) map.set(m.id, { member: m, due: 0, paid: 0, remaining: 0, charges: 0 });
+    for (const c of data.charges.filter((c) => !c.archived))
+      for (const b of chargeBalances(c, data.members, data.payments)) {
+        const r = map.get(b.member.id)!;
+        r.due += b.due;
+        r.paid += b.paid;
+        r.remaining += b.remaining;
+        r.charges++;
+      }
+    return [...map.values()]
+      .filter((r) => r.member.active || r.charges > 0)
+      .sort((a, b) => b.remaining - a.remaining || a.member.name.localeCompare(b.member.name, 'pt-BR'));
+  }, [data.members, data.charges, data.payments]);
+
+  const list = rows.filter(
+    (r) =>
+      (filter === 'todos' || (filter === 'pendentes' ? r.remaining > 0 : r.remaining === 0)) &&
+      (!q || normalize(r.member.name).includes(normalize(q))),
+  );
+  const pendentes = rows.filter((r) => r.remaining > 0).length;
+  const totalOpen = rows.reduce((s, r) => s + r.remaining, 0);
+
+  const exportCSV = () =>
+    downloadCSV('situacao-financeira-por-membro.csv', [
+      ['Nome', 'Unidade', 'Idade', 'Total devido', 'Pago', 'Em aberto', 'Situação'],
+      ...list.map((r) => [
+        r.member.name,
+        (r.member.unitId && unitById.get(r.member.unitId)?.name) || '',
+        age(r.member) ?? '',
+        csvMoney(r.due),
+        csvMoney(r.paid),
+        csvMoney(r.remaining),
+        r.remaining ? 'Pendente' : 'Em dia',
+      ]),
+    ]);
+
+  return (
+    <div className="card">
+      <div className="toolbar">
+        <div className="search">
+          <Search />
+          <input className="input" placeholder="Buscar membro…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <div className="segmented">
+          <button className={filter === 'pendentes' ? 'on' : ''} onClick={() => setFilter('pendentes')}>
+            Com pendência ({pendentes})
+          </button>
+          <button className={filter === 'em-dia' ? 'on' : ''} onClick={() => setFilter('em-dia')}>
+            Em dia ({rows.length - pendentes})
+          </button>
+          <button className={filter === 'todos' ? 'on' : ''} onClick={() => setFilter('todos')}>
+            Todos
+          </button>
+        </div>
+        <button className="btn btn-sm" onClick={exportCSV} disabled={!list.length}>
+          <Download /> Exportar
+        </button>
+      </div>
+      {list.length === 0 ? (
+        <Empty
+          icon={UserRound}
+          title={rows.length ? (filter === 'pendentes' ? 'Nenhum membro com pendência 🎉' : 'Ninguém encontrado') : 'Nenhum membro cadastrado'}
+          text={rows.length ? undefined : 'Cadastre os membros em Controle de Membros.'}
+        />
+      ) : (
+        <>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Membro</th>
+                  <th className="hide-sm">Unidade</th>
+                  <th className="num hide-sm">Devido</th>
+                  <th className="num hide-sm">Pago</th>
+                  <th className="num">Em aberto</th>
+                  <th>Situação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {list.map((r) => {
+                  const u = r.member.unitId ? unitById.get(r.member.unitId) : undefined;
+                  return (
+                    <tr key={r.member.id} style={{ cursor: 'pointer' }} onClick={() => onOpen(r.member)}>
+                      <td>
+                        <div className="row">
+                          <MemberAvatar member={r.member} unit={u} size={34} />
+                          <div>
+                            <b style={{ fontWeight: 600 }}>{r.member.name}</b>
+                            <div className="tiny">
+                              {r.charges} cobrança(s)
+                              {age(r.member) !== null && ` · ${age(r.member)} anos`}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="hide-sm">
+                        <UnitChip unit={u} />
+                      </td>
+                      <td className="num hide-sm">{money(r.due)}</td>
+                      <td className="num hide-sm">{money(r.paid)}</td>
+                      <td className="num">{r.remaining ? <b className="down">{money(r.remaining)}</b> : '—'}</td>
+                      <td>{r.remaining ? <span className="badge pendente">Pendente</span> : <span className="badge pago">Em dia</span>}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="row-between small muted" style={{ padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
+            <span>Clique em um membro para ver a ficha financeira e registrar pagamentos.</span>
+            <span>
+              Total em aberto: <b className="down">{money(totalOpen)}</b>
             </span>
           </div>
         </>

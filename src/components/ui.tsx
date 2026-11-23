@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, Eye, EyeOff, X, type LucideIcon } from 'lucide-react';
-import type { Unit } from '../types';
+import type { Member, Unit } from '../types';
 import type { Status } from '../lib/finance';
 
 // ---------- Modal ----------
@@ -170,6 +170,17 @@ const STATUS_LABEL: Record<Status, string> = { pago: 'Pago', parcial: 'Parcial',
 export const StatusBadge = ({ status }: { status: Status }) => (
   <span className={`badge ${status}`}>{STATUS_LABEL[status]}</span>
 );
+
+/** Foto do membro (ou iniciais na cor da unidade). */
+export function MemberAvatar({ member, unit, size = 36 }: { member: Pick<Member, 'name' | 'photo'>; unit?: Unit; size?: number }) {
+  const style = { width: size, height: size, borderRadius: Math.round(size * 0.28), fontSize: Math.round(size * 0.36) };
+  if (member.photo) return <img className="avatar avatar-photo" src={member.photo} alt="" style={style} />;
+  return (
+    <div className="avatar" style={{ ...style, background: (unit?.color ?? '#8a918c') + '22', color: unit?.color ?? 'var(--text-2)' }}>
+      {initials(member.name || '?')}
+    </div>
+  );
+}
 
 export function initials(name: string) {
   const parts = name.trim().split(/\s+/);

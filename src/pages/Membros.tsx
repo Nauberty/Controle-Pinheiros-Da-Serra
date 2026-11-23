@@ -7,14 +7,14 @@ import { money, normalize, uid } from '../lib/format';
 import { downloadCSV } from '../lib/download';
 import { parseCSV, toIsoDate } from '../lib/csv';
 import { FIELDS, ROLES, age, completeness, roleLabel, type ProfileKey } from '../lib/memberFields';
-import { Bar, Empty, Field, Modal, UnitChip, UnitLogo, confirmDialog, initials, run, toast } from '../components/ui';
+import { Bar, Empty, Field, MemberAvatar, Modal, UnitChip, UnitLogo, confirmDialog, run, toast } from '../components/ui';
 import MemberProfile, { markSynced } from '../components/MemberProfile';
 import type { PageProps } from './types';
 
 type View = 'ativos' | 'pendentes' | 'inativos';
 
 export default function Membros({ data }: PageProps) {
-  const [profile, setProfile] = useState<{ member?: Member } | null>(null);
+  const [profile, setProfile] = useState<{ member?: Member; unit?: string } | null>(null);
   const [bulk, setBulk] = useState(false);
   const [importRows, setImportRows] = useState<string[][] | null>(null);
   const [q, setQ] = useState('');
@@ -71,12 +71,14 @@ export default function Membros({ data }: PageProps) {
 
   const exportCSV = () =>
     downloadCSV('membros-pinheiros-da-serra.csv', [
-      ['Nome', 'Unidade', 'Função', ...FIELDS.map((f) => f.label), 'Situação', 'Pendente no SGC'],
+      ['Nome completo', 'Unidade', 'Função', 'Idade atual', ...FIELDS.map((f) => f.label), 'Vacinas tomadas', 'Situação', 'Pendente no SGC'],
       ...list.map((m) => [
         m.name,
         (m.unitId && unitById.get(m.unitId)?.name) || '',
         roleLabel(m.role),
+        age(m) ?? '',
         ...FIELDS.map((f) => (m[f.key] ?? '').toString().replace(/\n/g, ' | ')),
+        (m.vaccines ?? '').split('\n').filter(Boolean).join(', '),
         m.active ? 'Ativo' : 'Inativo',
         m.sgcPending ? 'Sim' : 'Não',
       ]),
@@ -125,20 +127,34 @@ export default function Membros({ data }: PageProps) {
 
       <div className="grid grid-4" style={{ marginBottom: 18 }}>
         {counts.map((c) => (
-          <button
+          <div
             key={c.unit.id}
+            role="button"
+            tabIndex={0}
             className="card unit-count"
             style={{ borderColor: unit === c.unit.id ? c.unit.color : undefined }}
             onClick={() => setUnit(unit === c.unit.id ? '' : c.unit.id)}
+            title="Clique para filtrar a lista por esta unidade"
           >
             <UnitLogo unit={c.unit} size={46} />
-            <div>
+            <div className="grow" style={{ minWidth: 0 }}>
               <div className="small muted">{c.unit.name}</div>
               <div className="stat-value" style={{ fontSize: 22 }}>
                 {c.n} <span className="tiny">membro(s)</span>
               </div>
             </div>
-          </button>
+            <button
+              className="icon-btn unit-add"
+              title={`Cadastrar membro na unidade ${c.unit.name}`}
+              aria-label={`Cadastrar membro na unidade ${c.unit.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setProfile({ unit: c.unit.id });
+              }}
+            >
+              <UserPlus />
+            </button>
+          </div>
         ))}
       </div>
 
@@ -234,19 +250,17 @@ export default function Membros({ data }: PageProps) {
                 {list.map((m) => {
                   const u = m.unitId ? unitById.get(m.unitId) : undefined;
                   const owed = debt.get(m.id) ?? 0;
-                  const years = age(m.birthDate);
+                  const years = age(m);
                   const pct = completeness(m);
                   return (
                     <tr key={m.id} style={{ cursor: 'pointer' }} onClick={() => setProfile({ member: m })}>
                       <td>
                         <div className="row">
-                          <div className="avatar" style={{ background: (u?.color ?? '#8a918c') + '22', color: u?.color ?? 'var(--text-2)' }}>
-                            {initials(m.name)}
-                          </div>
+                          <MemberAvatar member={m} unit={u} size={38} />
                           <div>
                             <b style={{ fontWeight: 600 }}>{m.name}</b>
                             <div className="tiny">
-                              {years !== null ? `${years} anos` : 'Sem data de nascimento'}
+                              {years !== null ? `${years} anos` : 'Idade não informada'}
                               {m.sgcId && ` · SGC ${m.sgcId}`}
                             </div>
                           </div>
@@ -296,7 +310,7 @@ export default function Membros({ data }: PageProps) {
         )}
       </div>
 
-      {profile && <MemberProfile data={data} member={profile.member} onClose={() => setProfile(null)} />}
+      {profile && <MemberProfile data={data} member={profile.member} presetUnit={profile.unit} onClose={() => setProfile(null)} />}
       {bulk && <BulkForm data={data} onClose={() => setBulk(false)} />}
       {importRows && <ImportDialog data={data} rows={importRows} onClose={() => setImportRows(null)} />}
     </div>
