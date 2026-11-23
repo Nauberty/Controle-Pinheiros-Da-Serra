@@ -7,6 +7,8 @@ import { Bar, Empty, Field, Modal, UnitChip, confirmDialog, run, toast } from '.
 import type { PageProps } from './types';
 
 export const CAMP_CATEGORIES = [
+  'Atividade oficial',
+  'Treinamento',
   'Inscrição e documentação',
   'Uniformes',
   'Barracas e equipamentos',
@@ -17,6 +19,11 @@ export const CAMP_CATEGORIES = [
   'Arrecadação',
   'Outros',
 ];
+
+const CATEGORY_TONE: Record<string, string> = {
+  'Atividade oficial': 'tone-amber',
+  Treinamento: 'tone-blue',
+};
 
 type View = 'pendentes' | 'concluidas' | 'todas';
 
@@ -175,7 +182,7 @@ export default function Campori({ data }: PageProps) {
                     <div className="camp-title">{a.title}</div>
                     {a.description && <div className="small muted camp-desc">{a.description}</div>}
                     <div className="camp-meta">
-                      <span className="badge neutral">{a.category}</span>
+                      <span className={`badge ${CATEGORY_TONE[a.category] ?? 'neutral'}`}>{a.category}</span>
                       {unit && <UnitChip unit={unit} />}
                       {a.responsible && <span>👤 {a.responsible}</span>}
                       {a.dueDate && !a.done && (
@@ -193,7 +200,7 @@ export default function Campori({ data }: PageProps) {
                     <button className="icon-btn" aria-label="Editar" onClick={() => setForm({ item: a })}>
                       <Pencil />
                     </button>
-                    <button className="icon-btn danger" aria-label="Excluir" onClick={() => del(a)}>
+                    <button className="icon-btn danger" aria-label="Excluir atividade" title="Excluir atividade" onClick={() => del(a)}>
                       <Trash2 />
                     </button>
                   </div>
@@ -218,6 +225,14 @@ function ActivityForm({ data, item, onClose }: { data: PageProps['data']; item?:
   const [dueDate, setDueDate] = useState(item?.dueDate ?? '');
   const [done, setDone] = useState(item?.done ?? false);
   const [busy, setBusy] = useState(false);
+
+  const remove = async () => {
+    if (!item) return;
+    if (await confirmDialog('Excluir atividade?', `"${item.title}" será excluída e ficará na lixeira por segurança.`, { ok: 'Excluir' })) {
+      const ok = await run(() => removeItem('campori', item.id), 'Atividade excluída');
+      if (ok) onClose();
+    }
+  };
 
   const submit = async () => {
     if (!title.trim()) return toast('Dê um nome para a atividade', true);
@@ -251,6 +266,11 @@ function ActivityForm({ data, item, onClose }: { data: PageProps['data']; item?:
       onClose={onClose}
       footer={
         <>
+          {item && (
+            <button className="btn btn-danger-soft" style={{ marginRight: 'auto' }} onClick={remove}>
+              <Trash2 /> Excluir atividade
+            </button>
+          )}
           <button className="btn" onClick={onClose}>
             Cancelar
           </button>
