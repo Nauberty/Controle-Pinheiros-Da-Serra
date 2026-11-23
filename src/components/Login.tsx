@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Crown, LogIn, Users } from 'lucide-react';
-import { login, resetPassword } from '../data/cloud';
+import { login } from '../data/cloud';
 import { LOGIN_ACCOUNTS } from '../firebase-config';
 import { Field, PasswordInput } from './ui';
 
@@ -14,12 +14,11 @@ const MESSAGES: Record<string, string> = {
 };
 
 export default function Login() {
-  const [account, setAccount] = useState(0); // índice em LOGIN_ACCOUNTS, ou -1 = outro e-mail
-  const [email, setEmail] = useState('');
+  const [account, setAccount] = useState(0); // índice em LOGIN_ACCOUNTS
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<{ text: string; ok?: boolean } | null>(null);
-  const chosenEmail = account >= 0 ? LOGIN_ACCOUNTS[account].email : email;
+  const [msg, setMsg] = useState<{ text: string } | null>(null);
+  const chosenEmail = LOGIN_ACCOUNTS[account].email;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -32,16 +31,6 @@ export default function Login() {
       setMsg({ text: MESSAGES[code] ?? 'Não foi possível entrar. Tente novamente.' });
     } finally {
       setBusy(false);
-    }
-  };
-
-  const forgot = async () => {
-    if (!email) return setMsg({ text: 'Digite seu e-mail acima para receber o link de nova senha.' });
-    try {
-      await resetPassword(email);
-      setMsg({ text: 'Enviamos um link para redefinir sua senha. Confira seu e-mail.', ok: true });
-    } catch {
-      setMsg({ text: 'Não foi possível enviar o e-mail. Confira o endereço digitado.' });
     }
   };
 
@@ -71,32 +60,13 @@ export default function Login() {
               </button>
             ))}
           </div>
-          {account < 0 && (
-            <Field label="E-mail">
-              <input className="input" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-            </Field>
-          )}
           <Field label="Senha">
             <PasswordInput autoComplete="current-password" required autoFocus value={password} onChange={setPassword} />
           </Field>
-          {msg && <div className={`notice ${msg.ok ? 'info' : 'danger'}`}>{msg.text}</div>}
+          {msg && <div className="notice danger">{msg.text}</div>}
           <button className="btn btn-primary" style={{ height: 46 }} disabled={busy}>
             <LogIn /> {busy ? 'Entrando…' : 'Entrar'}
           </button>
-          {account >= 0 ? (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAccount(-1)}>
-              Entrar com outro e-mail
-            </button>
-          ) : (
-            <div className="row" style={{ justifyContent: 'center' }}>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAccount(0)}>
-                Voltar
-              </button>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={forgot}>
-                Esqueci minha senha
-              </button>
-            </div>
-          )}
         </form>
       </div>
     </div>

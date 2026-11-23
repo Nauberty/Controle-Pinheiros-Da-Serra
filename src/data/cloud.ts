@@ -5,7 +5,6 @@ import {
   reauthenticateWithCredential,
   updatePassword,
   onAuthStateChanged,
-  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   type Auth,
@@ -26,7 +25,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { firebaseConfig } from '../firebase-config';
-import { COLLECTIONS, type Access, type AccessRole, type CollectionName } from '../types';
+import { COLLECTIONS, type Access, type CollectionName } from '../types';
 import type { Backend, Item } from './backend';
 
 let app: FirebaseApp | null = null;
@@ -55,10 +54,6 @@ export function watchAuth(cb: (user: User | null) => void) {
 
 export async function login(email: string, password: string) {
   await signInWithEmailAndPassword(init().auth, email.trim(), password);
-}
-
-export async function resetPassword(email: string) {
-  await sendPasswordResetEmail(init().auth, email.trim());
 }
 
 /**
@@ -90,15 +85,8 @@ export async function logout() {
   await signOut(init().auth);
 }
 
-// ---------- Lista de e-mails com acesso (coleção "acesso") ----------
+// ---------- Nível de acesso (coleção "acesso", gerenciada só pelo console do Firebase) ----------
 
-export function watchAccess(cb: (items: Access[]) => void, onError: (e: Error) => void) {
-  return onSnapshot(
-    collection(init().fs, 'acesso'),
-    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Access, 'id'>) }))),
-    onError,
-  );
-}
 
 /** Lê o nível de acesso do usuário logado. Retorna null se o e-mail não estiver liberado. */
 export async function getMyAccess(email: string): Promise<Access | null> {
@@ -113,18 +101,8 @@ export async function getMyAccess(email: string): Promise<Access | null> {
   }
 }
 
-export async function grantAccess(email: string, name: string, role: AccessRole) {
-  const id = email.trim().toLowerCase();
-  await setDoc(doc(init().fs, 'acesso', id), { name: name.trim(), role, addedAt: Date.now() });
-}
 
-export async function setAccessRole(a: Access, role: AccessRole) {
-  await setDoc(doc(init().fs, 'acesso', a.id), { name: a.name ?? '', role, addedAt: a.addedAt ?? Date.now() });
-}
 
-export async function revokeAccess(email: string) {
-  await deleteDoc(doc(init().fs, 'acesso', email));
-}
 
 // ---------- Backend de dados ----------
 

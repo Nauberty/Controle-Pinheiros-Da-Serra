@@ -3,7 +3,7 @@ rules_version = '2';
 // Regras de segurança do banco de dados (Cloud Firestore).
 //
 // Níveis de acesso (definidos na coleção "acesso", um documento por e-mail):
-//   role: "executiva" → acesso total, inclusive Tesouraria, Configurações e lista de acesso
+//   role: "executiva" → acesso total, inclusive Tesouraria e Configurações
 //   role: "regular"   → Pontuação das Unidades e Atividades Campori
 // Quem não está na coleção "acesso" não consegue ler nem alterar nada.
 service cloud.firestore {
@@ -24,10 +24,11 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/acesso/$(meuEmail())).data.role == 'executiva';
     }
 
-    // Lista de acesso: cada um lê o próprio nível; só a executiva vê e altera a lista toda
+    // Lista de acesso: cada login só lê o próprio nível.
+    // Ninguém adiciona, altera ou exclui usuários pelo app: somente pelo console do Firebase.
     match /acesso/{email} {
       allow get: if liberado() && email == meuEmail();
-      allow read, write: if executiva();
+      allow list, write: if false;
     }
 
     // Pontuação: toda a diretoria

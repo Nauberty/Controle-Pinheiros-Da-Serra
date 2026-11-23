@@ -31,7 +31,7 @@ O Firebase é um serviço do Google, e o plano gratuito (Spark) é mais que sufi
 
 ## 4. Liberar o primeiro acesso (você)
 
-As regras só deixam entrar quem está na lista **acesso**. O primeiro e-mail é cadastrado à mão; os próximos você libera pelo próprio sistema.
+As regras só deixam entrar quem está na lista **acesso**. Essa lista **só pode ser alterada aqui, no console do Firebase** — por segurança, o app não permite adicionar, alterar ou excluir usuários.
 
 1. No **Firestore Database**, aba **Dados**, clique em **+ Iniciar coleção**.
 2. ID da coleção: `acesso` → Próxima.
@@ -54,9 +54,9 @@ O bloqueio não é só visual: as próprias regras do banco impedem a diretoria 
 
 1. **Authentication → Usuários → Adicionar usuário**.
 2. Informe o e-mail e uma senha provisória. Repita para cada membro da diretoria.
-3. No sistema, em **Configurações → Diretoria com acesso**, libere o e-mail de cada pessoa e escolha **Diretoria executiva** ou **Diretoria regular**.
+3. Para cada login criado aqui, crie também o documento correspondente na coleção `acesso` (passo 4), com `role` = `executiva` ou `regular`.
 
-> A pessoa pode trocar a senha pela opção **"Esqueci minha senha"** na tela de login.
+> As senhas podem ser trocadas pela **Diretoria Executiva** no app, em **Configurações → Senhas de acesso**.
 
 ## 6. Ligar o sistema ao Firebase
 
@@ -99,5 +99,5 @@ Siga o passo a passo em **[BACKUP.md](BACKUP.md#ativar-o-backup-automático-sema
 |---|---|
 | "E-mail ou senha incorretos" | Confira se o usuário foi criado em Authentication → Usuários. |
 | "Acesso pendente" | O e-mail não está na coleção `acesso`, ou está com letras maiúsculas. |
-| A Tesouraria não aparece | O nível da pessoa é `regular`. Uma pessoa da diretoria executiva pode mudar em Configurações. |
+| A Tesouraria não aparece | O login é o da Diretoria Regular. O nível só pode ser mudado no console (coleção `acesso`, campo `role`). |
 | A tela de login não abre ou dá erro de domínio | Adicione `pinheirosdaserra.vercel.app` em Authentication → Configurações → Domínios autorizados. |

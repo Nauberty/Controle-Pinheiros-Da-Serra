@@ -92,8 +92,7 @@ export default function App() {
           <img src="./logo.png" alt="" />
           <h1>Acesso pendente</h1>
           <p className="muted" style={{ margin: '12px 0 20px' }}>
-            O e-mail <b>{user?.email}</b> ainda não foi liberado. Peça a alguém da diretoria executiva para liberar seu acesso em
-            Configurações → Diretoria com acesso.
+            O e-mail <b>{user?.email}</b> ainda não foi liberado. Use o login da Diretoria Executiva ou da Diretoria Regular.
           </p>
           <button className="btn" onClick={() => logout()}>
             Sair

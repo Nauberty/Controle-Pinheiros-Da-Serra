@@ -60,7 +60,7 @@ O bloqueio da Tesouraria vale também no banco de dados (ver `firestore.rules`),
 
 ### ⚙️ Configurações
 - Nomes e cores das unidades, categorias e contagem regressiva para o Campori.
-- Liberação de acesso para a diretoria.
+- Troca das senhas de acesso (somente Diretoria Executiva). Usuários só podem ser criados ou excluídos no console do Firebase.
 - Backup completo (baixar e restaurar).
 
 Funciona no computador e no celular. No celular dá para "Adicionar à tela inicial" e usar como um aplicativo.

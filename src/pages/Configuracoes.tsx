@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CloudOff, Cloud, Download, KeyRound, Plus, RotateCcw, Save, Shield, ShieldCheck, Trash2, Upload, X } from 'lucide-react';
-import type { Access, AccessRole, DB, Settings, TrashItem, Unit } from '../types';
+import { useRef, useState } from 'react';
+import { AlertTriangle, CloudOff, Cloud, Download, Plus, RotateCcw, Save, ShieldCheck, Trash2, Upload, X } from 'lucide-react';
+import type { DB, Settings, TrashItem, Unit } from '../types';
 import { COLLECTIONS } from '../types';
 import { purgeTrash, replaceAll, restoreFromTrash, save, snapshot } from '../data/store';
 import { backupData, daysSinceBackup, decryptBackup, isEncrypted, lastBackupAt, markBackupDone, type EncryptedBackup } from '../lib/backup';
-import { changePassword, cloudEnabled, grantAccess, revokeAccess, setAccessRole, watchAccess } from '../data/cloud';
+import { changePassword, cloudEnabled } from '../data/cloud';
 import { LOGIN_ACCOUNTS } from '../firebase-config';
 import { downloadFile } from '../lib/download';
 import { dateBR, money, signed, uid } from '../lib/format';
@@ -18,7 +18,7 @@ export default function Configuracoes({ data, user }: PageProps) {
       <div className="page-head">
         <div>
           <h1 className="page-title">Configurações</h1>
-          <p className="page-sub">Unidades, categorias, acesso da diretoria, backup e lixeira.</p>
+          <p className="page-sub">Unidades, categorias, senhas, backup e lixeira.</p>
         </div>
       </div>
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
@@ -31,7 +31,6 @@ export default function Configuracoes({ data, user }: PageProps) {
           <CategoriesCard data={data} kind="pointCategories" title="Categorias de pontuação" />
           <CategoriesCard data={data} kind="expenseCategories" title="Categorias de despesas" />
           {cloudEnabled && user && data.isExecutive && <PasswordsCard currentEmail={user.email ?? ''} />}
-          {cloudEnabled && user && <AccessCard currentEmail={user.email ?? ''} />}
           <BackupCard data={data} />
           <TrashCard data={data} />
         </div>
@@ -228,109 +227,6 @@ function SyncCard({ data }: { data: PageProps['data'] }) {
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-const ROLE_INFO: Record<AccessRole, { label: string; text: string }> = {
-  executiva: { label: 'Diretoria executiva', text: 'Acesso total: pontuação, membros, tesouraria e configurações.' },
-  regular: { label: 'Diretoria regular', text: 'Pontuação das Unidades e Atividades Campori.' },
-};
-
-function AccessCard({ currentEmail }: { currentEmail: string }) {
-  const [list, setList] = useState<Access[]>([]);
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [role, setRole] = useState<AccessRole>('regular');
-  useEffect(() => watchAccess(setList, () => {}), []);
-  const me = currentEmail.toLowerCase();
-  const sorted = [...list].sort(
-    (a, b) => Number(b.role === 'executiva') - Number(a.role === 'executiva') || (a.name || a.id).localeCompare(b.name || b.id),
-  );
-
-  const add = async () => {
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return toast('Digite um e-mail válido', true);
-    const ok = await run(() => grantAccess(email, name, role), 'Acesso liberado');
-    if (ok) {
-      setEmail('');
-      setName('');
-    }
-  };
-  const remove = async (a: Access) => {
-    if (a.id === me) return toast('Você não pode remover o seu próprio acesso.', true);
-    if (await confirmDialog('Remover acesso?', `${a.name || a.id} não conseguirá mais ver nem alterar os dados.`, { ok: 'Remover' }))
-      run(() => revokeAccess(a.id), 'Acesso removido');
-  };
-  const changeRole = (a: Access, r: AccessRole) => {
-    if (a.id === me) return toast('Peça a outra pessoa da diretoria executiva para mudar o seu nível.', true);
-    run(() => setAccessRole(a, r), `${a.name || a.id}: ${ROLE_INFO[r].label}`);
-  };
-
-  return (
-    <div className="card">
-      <div className="card-head">
-        <div className="card-title">
-          <Shield /> Diretoria com acesso
-        </div>
-      </div>
-      <div className="card-body stack" style={{ gap: 12 }}>
-        <div className="grid" style={{ gap: 8 }}>
-          {(Object.keys(ROLE_INFO) as AccessRole[]).map((r) => (
-            <div key={r} className="small">
-              <span className={`role-badge ${r}`}>{ROLE_INFO[r].label}</span> <span className="muted">{ROLE_INFO[r].text}</span>
-            </div>
-          ))}
-        </div>
-        <div className="list">
-          {sorted.map((a) => {
-            const r: AccessRole = a.role === 'executiva' ? 'executiva' : 'regular';
-            return (
-              <div key={a.id} className="list-item" style={{ padding: '8px 0' }}>
-                <div className={`avatar ${r === 'executiva' ? 'tone-amber' : 'tone-blue'}`}>
-                  <KeyRound />
-                </div>
-                <div className="grow">
-                  <div style={{ fontWeight: 600 }}>
-                    {a.name || a.id} {a.id === me && <span className="tiny">(você)</span>}
-                  </div>
-                  {a.name && <div className="tiny">{a.id}</div>}
-                </div>
-                <select
-                  className="select"
-                  style={{ width: 'auto', height: 34 }}
-                  value={r}
-                  disabled={a.id === me}
-                  onChange={(e) => changeRole(a, e.target.value as AccessRole)}
-                >
-                  <option value="executiva">Executiva</option>
-                  <option value="regular">Regular</option>
-                </select>
-                <button className="icon-btn danger" onClick={() => remove(a)} aria-label="Remover acesso">
-                  <Trash2 />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-        <div className="form-grid">
-          <input className="input" placeholder="Nome" value={name} onChange={(e) => setName(e.target.value)} />
-          <input className="input" type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <div className="segmented full">
-            <button className={role === 'regular' ? 'on' : ''} onClick={() => setRole('regular')}>
-              Diretoria regular
-            </button>
-            <button className={role === 'executiva' ? 'on' : ''} onClick={() => setRole('executiva')}>
-              Diretoria executiva
-            </button>
-          </div>
-        </div>
-        <button className="btn btn-sm" onClick={add}>
-          <Plus /> Liberar acesso
-        </button>
-        <p className="tiny">
-          Depois de liberar, crie o login dessa pessoa no Firebase (Authentication → Adicionar usuário) com o mesmo e-mail.
-        </p>
       </div>
     </div>
   );
