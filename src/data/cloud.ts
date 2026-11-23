@@ -1,6 +1,9 @@
-import { initializeApp, type FirebaseApp } from 'firebase/app';
+import { deleteApp, initializeApp, type FirebaseApp } from 'firebase/app';
 import {
+  EmailAuthProvider,
   getAuth,
+  reauthenticateWithCredential,
+  updatePassword,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
@@ -56,6 +59,31 @@ export async function login(email: string, password: string) {
 
 export async function resetPassword(email: string) {
   await sendPasswordResetEmail(init().auth, email.trim());
+}
+
+/**
+ * Troca a senha de um login. Exige a senha atual daquele login.
+ * - Se for o login em uso: confirma a senha atual e troca.
+ * - Se for outro login (ex.: Diretoria Regular): entra nele numa conexão separada,
+ *   troca a senha e sai, sem desconectar quem está usando o app.
+ */
+export async function changePassword(email: string, currentPassword: string, newPassword: string) {
+  const { auth } = init();
+  const me = auth.currentUser;
+  if (me && me.email?.toLowerCase() === email.toLowerCase()) {
+    await reauthenticateWithCredential(me, EmailAuthProvider.credential(email, currentPassword));
+    await updatePassword(me, newPassword);
+    return;
+  }
+  const temp = initializeApp(firebaseConfig!, 'troca-de-senha-' + Date.now());
+  try {
+    const tempAuth = getAuth(temp);
+    const cred = await signInWithEmailAndPassword(tempAuth, email, currentPassword);
+    await updatePassword(cred.user, newPassword);
+    await signOut(tempAuth);
+  } finally {
+    await deleteApp(temp);
+  }
 }
 
 export async function logout() {

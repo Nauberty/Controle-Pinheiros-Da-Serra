@@ -4,10 +4,12 @@ import type { Access, AccessRole, DB, Settings, TrashItem, Unit } from '../types
 import { COLLECTIONS } from '../types';
 import { purgeTrash, replaceAll, restoreFromTrash, save, snapshot } from '../data/store';
 import { backupData, daysSinceBackup, decryptBackup, isEncrypted, lastBackupAt, markBackupDone, type EncryptedBackup } from '../lib/backup';
-import { cloudEnabled, grantAccess, revokeAccess, setAccessRole, watchAccess } from '../data/cloud';
+import { changePassword, cloudEnabled, grantAccess, revokeAccess, setAccessRole, watchAccess } from '../data/cloud';
+import { LOGIN_ACCOUNTS } from '../firebase-config';
 import { downloadFile } from '../lib/download';
 import { dateBR, money, signed, uid } from '../lib/format';
 import { Field, Modal, PasswordInput, confirmDialog, run, toast } from '../components/ui';
+import { Crown, LockKeyhole, Users as UsersIcon } from 'lucide-react';
 import type { PageProps } from './types';
 
 export default function Configuracoes({ data, user }: PageProps) {
@@ -28,6 +30,7 @@ export default function Configuracoes({ data, user }: PageProps) {
         <div className="stack">
           <CategoriesCard data={data} kind="pointCategories" title="Categorias de pontuação" />
           <CategoriesCard data={data} kind="expenseCategories" title="Categorias de despesas" />
+          {cloudEnabled && user && data.isExecutive && <PasswordsCard currentEmail={user.email ?? ''} />}
           {cloudEnabled && user && <AccessCard currentEmail={user.email ?? ''} />}
           <BackupCard data={data} />
           <TrashCard data={data} />
@@ -551,6 +554,107 @@ function TrashCard({ data }: { data: PageProps['data'] }) {
             {showAll ? 'Mostrar menos' : `Ver todos (${list.length})`}
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Senhas de acesso (somente diretoria executiva) ----------------
+const PASSWORD_ERRORS: Record<string, string> = {
+  'auth/invalid-credential': 'A senha atual está incorreta.',
+  'auth/wrong-password': 'A senha atual está incorreta.',
+  'auth/user-not-found': 'Login não encontrado no Firebase.',
+  'auth/weak-password': 'A nova senha é muito fraca. Use pelo menos 8 caracteres.',
+  'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos e tente de novo.',
+  'auth/requires-recent-login': 'Por segurança, saia e entre de novo no app antes de trocar a senha.',
+  'auth/network-request-failed': 'Sem conexão com a internet.',
+};
+
+function PasswordsCard({ currentEmail }: { currentEmail: string }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const start = (email: string) => {
+    setOpen(open === email ? null : email);
+    setCurrent('');
+    setNext('');
+    setConfirm('');
+    setError('');
+  };
+
+  const submit = async (email: string, label: string) => {
+    setError('');
+    if (!current) return setError('Digite a senha atual.');
+    if (next.length < 8) return setError('A nova senha precisa ter pelo menos 8 caracteres.');
+    if (next !== confirm) return setError('A confirmação não confere com a nova senha.');
+    if (next === current) return setError('A nova senha precisa ser diferente da atual.');
+    setBusy(true);
+    try {
+      await changePassword(email, current, next);
+      toast(`Senha da ${label} alterada com sucesso`);
+      setOpen(null);
+    } catch (e) {
+      const code = (e as { code?: string }).code ?? '';
+      setError(PASSWORD_ERRORS[code] ?? 'Não foi possível trocar a senha. Tente novamente.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <LockKeyhole /> Senhas de acesso
+        </div>
+      </div>
+      <div className="card-body stack" style={{ gap: 10 }}>
+        <p className="small muted">
+          Somente a Diretoria Executiva pode trocar as senhas. Depois da troca, avise a diretoria da nova senha. Quem já está conectado
+          continua usando o app normalmente.
+        </p>
+        {LOGIN_ACCOUNTS.map((acc, i) => {
+          const isOpen = open === acc.email;
+          const mine = acc.email.toLowerCase() === currentEmail.toLowerCase();
+          return (
+            <div key={acc.email} className="password-row">
+              <div className="row">
+                <div className={`avatar ${i === 0 ? 'tone-amber' : 'tone-blue'}`}>{i === 0 ? <Crown /> : <UsersIcon />}</div>
+                <div className="grow" style={{ minWidth: 0 }}>
+                  <b>{acc.label}</b>
+                  {mine && <span className="tiny"> (login em uso)</span>}
+                  <div className="tiny">{acc.email}</div>
+                </div>
+                <button className="btn btn-sm" onClick={() => start(acc.email)}>
+                  {isOpen ? 'Cancelar' : 'Trocar senha'}
+                </button>
+              </div>
+              {isOpen && (
+                <div className="form-grid" style={{ marginTop: 12 }}>
+                  <Field label={`Senha atual da ${acc.label}`} full>
+                    <PasswordInput value={current} onChange={setCurrent} autoFocus autoComplete="current-password" />
+                  </Field>
+                  <Field label="Nova senha">
+                    <PasswordInput value={next} onChange={setNext} autoComplete="new-password" />
+                  </Field>
+                  <Field label="Confirmar nova senha">
+                    <PasswordInput value={confirm} onChange={setConfirm} autoComplete="new-password" onEnter={() => submit(acc.email, acc.label)} />
+                  </Field>
+                  {error && <div className="notice danger full">{error}</div>}
+                  <div className="full">
+                    <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => submit(acc.email, acc.label)}>
+                      <LockKeyhole /> {busy ? 'Trocando…' : 'Salvar nova senha'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

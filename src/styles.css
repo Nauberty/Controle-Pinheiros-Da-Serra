@@ -505,3 +505,4 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: man
 .camp-section-count { font-family: var(--display); font-size: 20px; font-weight: 600; color: var(--text-2); }
 .camp-section .camp-list { border-top: 1px solid var(--border); }
 .camp-empty { border-top: 1px solid var(--border); padding: 18px 16px; }
+.password-row { border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
